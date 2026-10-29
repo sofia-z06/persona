@@ -1,0 +1,7 @@
+.env
+.env.*
+!.env.example
+*.raw.json
+exports/
+.DS_Store
+setup-persona.sh
