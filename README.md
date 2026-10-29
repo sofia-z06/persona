@@ -1,4 +1,4 @@
-# Persona — agrégateur de news IA (n8n)
+# Persona| agrégateur de news IA (n8n)
 
 Persona est une newsletter IA personnalisée sans interface graphique : l'utilisateur discute avec un chatbot (Chat Trigger n8n), donne son email, ses centres d'intérêt et son créneau préféré, puis reçoit une newsletter avec liens et résumés à l'heure choisie.
 
@@ -106,7 +106,7 @@ Toutes les variables se trouvent dans `.env` (copié depuis `.env.example`).
 
 Tous les workflows sont dans le dossier `workflows/`.
 
-### Option A — depuis l'interface n8n
+### Option A : depuis l'interface n8n
 
 1. Ouvrir http://localhost:5678
 2. **Workflows** → **Add workflow** (ou le bouton `+`)
@@ -114,7 +114,7 @@ Tous les workflows sont dans le dossier `workflows/`.
 4. Sélectionner un fichier `.json` du dossier `workflows/`
 5. Enregistrer, puis recommencer pour chaque fichier
 
-### Option B — en ligne de commande (tout d'un coup)
+### Option B : en ligne de commande (tout d'un coup)
 
 ```bash
 docker compose cp workflows/. n8n:/tmp/workflows
