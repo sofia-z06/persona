@@ -1,4 +1,4 @@
-# Persona| agrégateur de news IA (n8n)
+# Persona | agrégateur de news IA (n8n)
 
 Persona est une newsletter IA personnalisée sans interface graphique : l'utilisateur discute avec un chatbot (Chat Trigger n8n), donne son email, ses centres d'intérêt et son créneau préféré, puis reçoit une newsletter avec liens et résumés à l'heure choisie.
 
