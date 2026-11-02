@@ -35,3 +35,33 @@ CREATE TABLE IF NOT EXISTS auth_flow (
     email TEXT,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- ============================================================
+-- articles : articles récupérés depuis les sources de news
+-- ============================================================
+CREATE TABLE IF NOT EXISTS articles (
+    id SERIAL PRIMARY KEY,
+    url TEXT NOT NULL UNIQUE CHECK (url ~* '^https?://'),
+    title TEXT NOT NULL,
+    summary TEXT,
+    source TEXT,
+    tags TEXT[] NOT NULL DEFAULT '{}',
+    published_at TIMESTAMPTZ,
+    fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- filtrer vite par tag, ex : WHERE tags && users.interests
+CREATE INDEX IF NOT EXISTS articles_tags_idx ON articles USING GIN (tags);
+
+-- ============================================================
+-- sent_articles : historique des envois (un article envoyé une seule fois par user)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS sent_articles (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, article_id)
+);
+
+-- la PK couvre les recherches par user_id ; cet index couvre celles par article_id
+CREATE INDEX IF NOT EXISTS sent_articles_article_idx ON sent_articles (article_id);
