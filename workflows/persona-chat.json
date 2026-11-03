@@ -1,0 +1,226 @@
+{
+  "name": "persona-chat",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "responseMode": "lastNode"
+        }
+      },
+      "id": "2094319c-f685-4107-91e5-47ee16f0436e",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "b5627d20-92f3-4b66-81b1-789b7e511ff3"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT user_id, expires_at\nFROM sessions\nWHERE session_id = $1\n  AND expires_at > NOW()\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.sessionId }}"
+        }
+      },
+      "id": "10c526d1-206d-45ca-84bd-0396c62e6b98",
+      "name": "Lookup session",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        220,
+        0
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "",
+          "name": "db"
+        }
+      },
+      "notes": "Partie Sofia (version minimale pour tester). alwaysOutputData doit rester activé : sans session, la requête ne renvoie aucune ligne et le flux s'arrêterait avant le Switch."
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "4f2feb39-5ccb-4271-9e6f-17d2de3a8ccc",
+                    "leftValue": "={{ $json.user_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "number",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  },
+                  {
+                    "id": "b9ee0e14-9b84-42a1-ae65-5a61041cf71e",
+                    "leftValue": "={{ $json.expires_at }}",
+                    "rightValue": "={{ $now }}",
+                    "operator": {
+                      "type": "dateTime",
+                      "operation": "after"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Agent"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallback": "Auth"
+        }
+      },
+      "id": "2cb43678-f038-4c95-95ea-ec491e855890",
+      "name": "Session valide ?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        440,
+        0
+      ],
+      "notes": "Agent : user_id présent ET expires_at dans le futur. Tout le reste (pas de session, session expirée, donnée inattendue) part en Auth par défaut."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1f1b6d1a-d910-4d41-b5c7-207bf3fc0a64",
+              "name": "output",
+              "value": "=connectée (user_id : {{ $json.user_id }})",
+              "type": "string"
+            },
+            {
+              "id": "ca97ecd1-43ae-4884-8534-b7103ddb70f1",
+              "name": "user_id",
+              "value": "={{ $json.user_id }}",
+              "type": "number"
+            },
+            {
+              "id": "6fec53fe-b37e-42f3-84ce-4b29385c1809",
+              "name": "sessionId",
+              "value": "={{ $('When chat message received').item.json.sessionId }}",
+              "type": "string"
+            },
+            {
+              "id": "10fe3819-3e49-4ccc-9f1d-2fc8b4595b9c",
+              "name": "chatInput",
+              "value": "={{ $('When chat message received').item.json.chatInput }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bade859d-3c1c-46be-8341-d066549a8bee",
+      "name": "Branche Agent (test)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        700,
+        -100
+      ],
+      "notes": "Placeholder : sera remplacé par l'agent. Le user_id dans le message sert juste à vérifier le critère d'acceptation."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d0619a6d-f939-45bf-be58-a023108ea527",
+              "name": "output",
+              "value": "non connectée",
+              "type": "string"
+            },
+            {
+              "id": "53749019-178c-40dc-919e-d37cd70f2795",
+              "name": "sessionId",
+              "value": "={{ $('When chat message received').item.json.sessionId }}",
+              "type": "string"
+            },
+            {
+              "id": "2320c0ae-5f81-470c-b0f3-b18b9cb72386",
+              "name": "chatInput",
+              "value": "={{ $('When chat message received').item.json.chatInput }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bf80f689-4cbe-49b4-b41b-dc5d2e33a3b6",
+      "name": "Branche Auth (test)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        700,
+        100
+      ],
+      "notes": "Placeholder : sera remplacé par le flux d'authentification (auth_flow / otp)."
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Lookup session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup session": {
+      "main": [
+        [
+          {
+            "node": "Session valide ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session valide ?": {
+      "main": [
+        [
+          {
+            "node": "Branche Agent (test)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Branche Auth (test)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
