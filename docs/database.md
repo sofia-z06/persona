@@ -139,9 +139,9 @@ VALUES ($1, $2)
 ON CONFLICT DO NOTHING;
 ```
 
-## Credential n8n `db`
+## Credential n8n `postgres`
 
-Dans n8n : **Credentials** → **Create credential** → **Postgres**, nommé `db` :
+Dans n8n : **Credentials** → **Create credential** → **Postgres**, nommé `postgres` :
 
 | Champ | Valeur |
 |---|---|
