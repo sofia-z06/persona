@@ -3,7 +3,9 @@
   "nodes": [
     {
       "parameters": {
-        "options": {}
+        "options": {
+          "responseMode": "lastNode"
+        }
       },
       "id": "681005c0-a141-4a3c-a809-11cbd43d846c",
       "name": "CHAT - Trigger",
@@ -79,6 +81,102 @@
         480,
         0
       ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0272eff1-474e-418c-b7eb-f4114cca4774",
+                    "leftValue": "={{ $json.authenticated }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Agent"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallback": "Auth"
+        }
+      },
+      "id": "0267902f-aed9-4e75-b18b-fd4b9b501037",
+      "name": "CHAT - Route Auth",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        720,
+        0
+      ],
+      "notes": "authenticated = true -> Agent. Tout le reste (false, absent, inattendu) -> Auth par défaut."
+    },
+    {
+      "parameters": {
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e776e456-6043-444a-926f-0bd98ce3cd2f",
+              "name": "output",
+              "value": "=connectée (user_id : {{ $json.user_id }})",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9797e4a3-4b97-4994-9ae6-05d1f4f4ec45",
+      "name": "AGENT - Test Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        -100
+      ],
+      "notes": "Placeholder, remplacé plus tard par l'agent. Garde tous les champs du contexte (user_id, sessionId...)."
+    },
+    {
+      "parameters": {
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8af8cd8c-5408-4170-9c1b-6758979e27aa",
+              "name": "output",
+              "value": "non connectée",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4f774f31-39df-4dc0-aba2-371ca5a4e11a",
+      "name": "AUTH - Test Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        100
+      ],
+      "notes": "Placeholder, remplacé plus tard par le flux d'authentification."
     }
   ],
   "pinData": {},
@@ -99,6 +197,35 @@
         [
           {
             "node": "CHAT - Build Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CHAT - Build Context": {
+      "main": [
+        [
+          {
+            "node": "CHAT - Route Auth",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CHAT - Route Auth": {
+      "main": [
+        [
+          {
+            "node": "AGENT - Test Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AUTH - Test Reply",
             "type": "main",
             "index": 0
           }
