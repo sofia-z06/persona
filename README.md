@@ -148,16 +148,16 @@ Pour installer un community node :
 
 ## 7. Identifiants (credentials)
 
-Aucun identifiant n'est fourni dans ce repo. Vous devez créer les vôtres dans n8n : **Overview / Credentials** → **Create credential**, puis les sélectionner dans les nœuds correspondants.
+Aucun identifiant n'est fourni dans ce repo. Vous devez créer les vôtres dans n8n : **Overview / Credentials** → **Create credential**, puis les sélectionner dans les nœuds correspondants. Utilisez exactement les noms ci-dessous : les workflows importés les retrouvent par leur nom.
 
-<!-- TODO : compléter une fois la stack choisie -->
+| Nom | Type n8n | Utilisé par | Où l'obtenir |
+|---|---|---|---|
+| `llm` | Google Gemini (PaLM) API | Nœud AI Agent | [Google AI Studio](https://aistudio.google.com) → **API keys** → **Create API key** (offre gratuite, sans carte bancaire) |
+| `smtp` | SMTP (ou Gmail OAuth2) | Nœud Send Email | Votre fournisseur mail |
+| `news-api` | Header Auth / API du fournisseur | Nœuds HTTP Request | Dashboard du fournisseur |
+| `postgres` | Postgres | Nœuds Postgres | Valeurs de votre `.env` (hôte : `postgres`, port `5432`, SSL désactivé) |
 
-| Identifiant | Utilisé par | Où l'obtenir |
-|---|---|---|
-| Fournisseur LLM (ex. OpenAI / Mistral / Ollama) | Nœud AI Agent | Dashboard du fournisseur |
-| Envoi d'emails (SMTP ou Gmail OAuth2) | Nœud Send Email | Votre fournisseur mail |
-| API(s) de news | Nœuds HTTP Request | Dashboard du fournisseur |
-| PostgreSQL (données utilisateurs) | Nœuds Postgres | Valeurs de votre `.env` (hôte : `postgres`, port `5432`) |
+Pour `llm`, dans **Allowed HTTP Request Domains**, choisir **Specific Domains** et indiquer `generativelanguage.googleapis.com` : la clé ne peut alors être envoyée à aucun autre domaine.
 
 ---
 

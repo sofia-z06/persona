@@ -118,7 +118,7 @@ Pas de noms par défaut (`HTTP Request1`, `Code`, `If2`) : chaque nœud doit êt
 | Nom | Type n8n | Usage |
 |---|---|---|
 | `postgres` | Postgres | base de données du projet (hôte `postgres`, valeurs du `.env`) |
-| `llm` | fournisseur LLM choisi | nœud AI Agent / modèle de chat |
+| `llm` | Google Gemini (PaLM) API | nœud AI Agent / modèle de chat, domaine autorisé limité à `generativelanguage.googleapis.com` |
 | `smtp` | SMTP (ou Gmail OAuth2) | envoi des newsletters et des codes OTP |
 | `news-api` | Header Auth / API du fournisseur | récupération des articles |
 
