@@ -1,11 +1,11 @@
 # Test du routage du chatbot (Auth / Agent)
 
-Workflow : `workflows/persona-chat.json`
+Workflow : `workflows/chat-router.json`
 
 ## Préparation
 
-1. Importer `workflows/persona-chat.json` dans n8n
-2. Dans le nœud **Lookup session**, sélectionner le credential Postgres `db`
+1. Importer `workflows/chat-router.json` dans n8n
+2. Vérifier que les nœuds Postgres utilisent le credential `postgres`
 3. Enregistrer
 
 Créer un utilisateur de test (une seule fois) :
@@ -18,7 +18,7 @@ docker compose exec postgres psql -U persona -d persona -c \
 
 1. Cliquer sur **Open chat** (en bas du canvas) et envoyer `bonjour`
 2. ✅ Réponse attendue : `non connectée`
-3. Onglet **Executions** → ouvrir l'exécution → nœud **When chat message received** → copier la valeur de `sessionId`
+3. Onglet **Executions** → ouvrir l'exécution → nœud **CHAT - Trigger** → copier la valeur de `sessionId`
 
 ## Test 2 — session valide → Agent
 
