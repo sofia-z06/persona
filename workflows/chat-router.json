@@ -1,0 +1,122 @@
+{
+  "name": "PERSONA - Chat - Router",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "681005c0-a141-4a3c-a809-11cbd43d846c",
+      "name": "CHAT - Trigger",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "persona-chat"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT user_id, expires_at FROM sessions WHERE session_id = $1 AND expires_at > NOW() LIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.sessionId }}"
+        }
+      },
+      "id": "c560928d-cb65-48b1-9546-0cba5e2fc053",
+      "name": "DB - Get Session",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        240,
+        0
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "sessionId",
+              "value": "={{ $('CHAT - Trigger').item.json.sessionId }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "chatInput",
+              "value": "={{ $('CHAT - Trigger').item.json.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "user_id",
+              "value": "={{ $json.user_id ?? null }}",
+              "type": "number"
+            },
+            {
+              "id": "a4",
+              "name": "authenticated",
+              "value": "={{ !!$json.user_id }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "74cf8c9f-fc15-4734-b234-b0db56ce0e9a",
+      "name": "CHAT - Build Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "CHAT - Trigger": {
+      "main": [
+        [
+          {
+            "node": "DB - Get Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Get Session": {
+      "main": [
+        [
+          {
+            "node": "CHAT - Build Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ccfa1df6-d3da-46b8-82e5-439af0962028",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e2994b310ac8273141353449df49ac6619c260178049e5d642618a4e7dd49701"
+  },
+  "nodeGroups": [],
+  "id": "Dl6IMah1EHf94q0R",
+  "tags": []
+}
