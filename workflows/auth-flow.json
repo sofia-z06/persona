@@ -5,13 +5,13 @@
       "parameters": {
         "inputSource": "passthrough"
       },
-      "id": "403124ee-62c2-4f8f-98da-10259dde0395",
+      "id": "eeb8d586-ab39-4452-b0b5-d0b7f5707d64",
       "name": "AUTH - Start",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        0,
-        208
+        368,
+        336
       ]
     },
     {
@@ -22,13 +22,13 @@
           "queryReplacement": "={{ $json.sessionId }}"
         }
       },
-      "id": "b0b2b7ef-056a-4d3a-ae56-c9f9765c6139",
+      "id": "84aaba6e-5636-405c-a24f-d9951a41c3bf",
       "name": "DB - Get Auth Flow",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        240,
-        208
+        608,
+        336
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -96,13 +96,13 @@
           "fallbackOutput": "extra"
         }
       },
-      "id": "8cc7f33a-d239-46b3-ac75-e7c59fac9407",
+      "id": "556b5c87-1bc5-4646-a0cb-fe86ad5c89fb",
       "name": "AUTH - Route Step",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        480,
-        208
+        848,
+        336
       ]
     },
     {
@@ -119,26 +119,26 @@
         },
         "options": {}
       },
-      "id": "5df9c30e-62c7-467d-89f9-6e7c40875021",
+      "id": "69478d19-ec81-4610-bb72-cec5538eeddc",
       "name": "AUTH - Pending Reply",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        720,
-        0
+        1088,
+        128
       ]
     },
     {
       "parameters": {
         "jsCode": "const input = $('AUTH - Start').first().json;\nconst text = String(input.chatInput ?? '').trim();\nconst match = text.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}/);\nconst email = match ? match[0].toLowerCase() : null;\nreturn [{\n  json: {\n    sessionId: input.sessionId,\n    email,\n    valid: Boolean(email) && email.length <= 254,\n    attempted: text.includes('@')\n  }\n}];"
       },
-      "id": "53870d8f-c3d5-4c02-80a4-287295ce67ef",
+      "id": "170aab73-c92c-491b-8eae-0ec7f4330538",
       "name": "AUTH - Extract Email",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        720,
-        304
+        1088,
+        432
       ]
     },
     {
@@ -166,13 +166,13 @@
         },
         "options": {}
       },
-      "id": "a007dfbd-4fbe-46fc-8bfc-3a946f4c3cee",
+      "id": "6d3914af-3001-43a8-b949-f7ce365bd634",
       "name": "AUTH - Email Valid?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        960,
-        304
+        1328,
+        432
       ]
     },
     {
@@ -180,16 +180,16 @@
         "operation": "executeQuery",
         "query": "INSERT INTO auth_flow (session_id, step, email, updated_at) VALUES ($1, 'awaiting_code', $2, NOW()) ON CONFLICT (session_id) DO UPDATE SET step = EXCLUDED.step, email = EXCLUDED.email, updated_at = NOW();",
         "options": {
-          "queryReplacement": "={{ [$json.sessionId, $json.email] }}"
+          "queryReplacement": "={{ [$('AUTH - Extract Email').item.json.sessionId, $('AUTH - Extract Email').item.json.email] }}"
         }
       },
-      "id": "20cee60b-8095-4b8e-b71f-c5fe0d893a7b",
+      "id": "a654d3db-9193-43bd-ab5a-0dcf3e1b18eb",
       "name": "DB - Save Email",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1200,
-        208
+        2768,
+        128
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -213,13 +213,13 @@
         },
         "options": {}
       },
-      "id": "04d1e53c-cedf-493f-82af-a89c203c66a8",
+      "id": "2ba29df0-7fde-420d-b4ca-7d614354d096",
       "name": "AUTH - Ask Code Reply",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1440,
-        208
+        3008,
+        128
       ]
     },
     {
@@ -230,13 +230,13 @@
           "queryReplacement": "={{ $json.sessionId }}"
         }
       },
-      "id": "67c682df-4b78-42b2-a388-3c1ddbec6a7c",
+      "id": "c3d34e37-097e-4ec7-a3ad-acfd8c74d9cd",
       "name": "DB - Set Awaiting Email",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1200,
-        400
+        1568,
+        528
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -260,13 +260,156 @@
         },
         "options": {}
       },
-      "id": "e715438a-1b55-4b19-bb91-b489961f2d70",
+      "id": "7800a304-a004-415a-992b-202a7a03bf85",
       "name": "AUTH - Welcome Reply",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1440,
-        400
+        1808,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COUNT(*)::int AS sent FROM otp WHERE email = $1 AND created_at > NOW() - INTERVAL '1 hour';",
+        "options": {
+          "queryReplacement": "={{ $json.email }}"
+        }
+      },
+      "id": "0e23a0db-e1c1-46ce-afa9-89b94505bf4e",
+      "name": "DB - Count Recent OTP",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1568,
+        240
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9670a370-bdc1-4121-9591-a74981940b03",
+              "leftValue": "={{ $json.sent }}",
+              "rightValue": 3,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2d518af3-874c-4ee0-9a0d-aace5cd29833",
+      "name": "AUTH - Under OTP Limit?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1808,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst { sessionId, email } = $('AUTH - Extract Email').first().json;\nconst code = crypto.randomInt(0, 1000000).toString().padStart(6, '0');\nconst codeHash = crypto.createHash('sha256').update(code).digest('hex');\nreturn [{ json: { sessionId, email, code, codeHash } }];"
+      },
+      "id": "a7ec70f3-b30e-48f5-a66b-0e28cf0a4879",
+      "name": "AUTH - Generate OTP",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2048,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH invalidated AS (UPDATE otp SET expires_at = NOW() WHERE email = $1 AND expires_at > NOW()) INSERT INTO otp (email, code_hash, expires_at, attempts) VALUES ($1, $2, NOW() + INTERVAL '10 minutes', 0);",
+        "options": {
+          "queryReplacement": "={{ [$json.email, $json.codeHash] }}"
+        }
+      },
+      "id": "0b338d57-f8bd-457b-b246-4d7c5344136d",
+      "name": "DB - Save OTP",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2288,
+        128
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "Persona <no-reply@persona.local>",
+        "toEmail": "={{ $('AUTH - Generate OTP').item.json.email }}",
+        "subject": "Ton code de connexion Persona",
+        "emailFormat": "text",
+        "text": "=Bonjour,\n\nVoici ton code de connexion Persona : {{ $('AUTH - Generate OTP').item.json.code }}\n\nIl est valable 10 minutes. Si tu n'es pas à l'origine de cette demande, ignore simplement cet email.\n\nPersona",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "36fbe676-112c-4f74-941c-b5a32c0876a6",
+      "name": "AUTH - Send OTP",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2528,
+        128
+      ],
+      "webhookId": "092da69d-d88b-4814-baba-ccc7ca59e31c",
+      "credentials": {
+        "smtp": {
+          "id": "GfLO6efgqUaIeV39",
+          "name": "smtp"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "314f2ef6-25f0-4cec-a4c1-c0f8f484150c",
+              "name": "output",
+              "value": "Trop de codes ont été envoyés à cette adresse dans la dernière heure. Réessaie un peu plus tard.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4276e47d-a974-4a40-bb05-3cd9c8d1b76d",
+      "name": "AUTH - OTP Limit Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2048,
+        336
       ]
     }
   ],
@@ -334,7 +477,7 @@
       "main": [
         [
           {
-            "node": "DB - Save Email",
+            "node": "DB - Count Recent OTP",
             "type": "main",
             "index": 0
           }
@@ -369,6 +512,68 @@
           }
         ]
       ]
+    },
+    "DB - Count Recent OTP": {
+      "main": [
+        [
+          {
+            "node": "AUTH - Under OTP Limit?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTH - Under OTP Limit?": {
+      "main": [
+        [
+          {
+            "node": "AUTH - Generate OTP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AUTH - OTP Limit Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTH - Generate OTP": {
+      "main": [
+        [
+          {
+            "node": "DB - Save OTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Save OTP": {
+      "main": [
+        [
+          {
+            "node": "AUTH - Send OTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTH - Send OTP": {
+      "main": [
+        [
+          {
+            "node": "DB - Save Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -376,7 +581,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "8a0e4b97-307d-47aa-8178-907c39d8fe47",
+  "versionId": "852eda90-b190-4958-b31d-eb9c7d962721",
   "meta": {
     "instanceId": "e2994b310ac8273141353449df49ac6619c260178049e5d642618a4e7dd49701"
   },
