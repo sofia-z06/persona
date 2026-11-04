@@ -153,7 +153,7 @@ Aucun identifiant n'est fourni dans ce repo. Vous devez créer les vôtres dans 
 | Nom | Type n8n | Utilisé par | Où l'obtenir |
 |---|---|---|---|
 | `llm` | Google Gemini (PaLM) API | Nœud AI Agent | [Google AI Studio](https://aistudio.google.com) → **API keys** → **Create API key** (offre gratuite, sans carte bancaire) |
-| `smtp` | SMTP (ou Gmail OAuth2) | Nœud Send Email | Votre fournisseur mail |
+| `smtp` | SMTP | Nœud Send Email | En développement : Mailpit, déjà lancé par `docker compose` (host `mailpit`, port `1025`, sans utilisateur ni mot de passe, SSL/TLS désactivé). Les emails envoyés sont visibles sur http://localhost:8025 |
 | `news-api` | Header Auth / API du fournisseur | Nœuds HTTP Request | Dashboard du fournisseur |
 | `postgres` | Postgres | Nœuds Postgres | Valeurs de votre `.env` (hôte : `postgres`, port `5432`, SSL désactivé) |
 
