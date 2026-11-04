@@ -3,17 +3,15 @@
   "nodes": [
     {
       "parameters": {
-        "options": {
-          "responseMode": "lastNode"
-        }
+        "options": {}
       },
-      "id": "681005c0-a141-4a3c-a809-11cbd43d846c",
+      "id": "adf7eb1c-da23-40c9-af16-e88d1e6ccd51",
       "name": "CHAT - Trigger",
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.1,
       "position": [
-        0,
-        0
+        1344,
+        272
       ],
       "webhookId": "persona-chat"
     },
@@ -25,13 +23,13 @@
           "queryReplacement": "={{ $json.sessionId }}"
         }
       },
-      "id": "c560928d-cb65-48b1-9546-0cba5e2fc053",
+      "id": "0eb498ba-796e-4eaf-b3e8-cd54c3b111a4",
       "name": "DB - Get Session",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        240,
-        0
+        1584,
+        272
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -73,13 +71,13 @@
         },
         "options": {}
       },
-      "id": "74cf8c9f-fc15-4734-b234-b0db56ce0e9a",
+      "id": "68fb2b97-8a52-4c4c-bc3a-4c16cfe7aedf",
       "name": "CHAT - Build Context",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        480,
-        0
+        1824,
+        272
       ]
     },
     {
@@ -114,23 +112,21 @@
           ]
         },
         "options": {
-          "fallbackOutput": "extra",
-          "renameFallback": "Auth"
+          "fallbackOutput": "extra"
         }
       },
-      "id": "0267902f-aed9-4e75-b18b-fd4b9b501037",
+      "id": "b3cc17c4-3f66-49a1-8812-dc86e6fadc0f",
       "name": "CHAT - Route Auth",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        720,
-        0
+        2064,
+        272
       ],
       "notes": "authenticated = true -> Agent. Tout le reste (false, absent, inattendu) -> Auth par défaut."
     },
     {
       "parameters": {
-        "includeOtherFields": true,
         "assignments": {
           "assignments": [
             {
@@ -141,42 +137,46 @@
             }
           ]
         },
+        "includeOtherFields": true,
         "options": {}
       },
-      "id": "9797e4a3-4b97-4994-9ae6-05d1f4f4ec45",
+      "id": "e3d58ea3-58fa-44e0-9046-223407888b86",
       "name": "AGENT - Test Reply",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        960,
-        -100
+        2304,
+        160
       ],
       "notes": "Placeholder, remplacé plus tard par l'agent. Garde tous les champs du contexte (user_id, sessionId...)."
     },
     {
       "parameters": {
-        "includeOtherFields": true,
-        "assignments": {
-          "assignments": [
-            {
-              "id": "8af8cd8c-5408-4170-9c1b-6758979e27aa",
-              "name": "output",
-              "value": "non connectée",
-              "type": "string"
-            }
-          ]
+        "workflowId": {
+          "__rl": true,
+          "value": "tnWQU13NpOAZdltB",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/tnWQU13NpOAZdltB",
+          "cachedResultName": "PERSONA - AUTH - Flow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         },
         "options": {}
       },
-      "id": "4f774f31-39df-4dc0-aba2-371ca5a4e11a",
-      "name": "AUTH - Test Reply",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
+      "id": "484b4a78-4384-40c8-97a2-05190932518d",
+      "name": "AUTH - Run Flow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
       "position": [
-        960,
-        100
-      ],
-      "notes": "Placeholder, remplacé plus tard par le flux d'authentification."
+        2304,
+        368
+      ]
     }
   ],
   "pinData": {},
@@ -225,7 +225,7 @@
         ],
         [
           {
-            "node": "AUTH - Test Reply",
+            "node": "AUTH - Run Flow",
             "type": "main",
             "index": 0
           }
@@ -238,7 +238,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "ccfa1df6-d3da-46b8-82e5-439af0962028",
+  "versionId": "be22bb6f-edd4-4f7c-8c76-795be48b7c78",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "e2994b310ac8273141353449df49ac6619c260178049e5d642618a4e7dd49701"

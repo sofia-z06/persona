@@ -1,0 +1,386 @@
+{
+  "name": "PERSONA - AUTH - Flow",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "403124ee-62c2-4f8f-98da-10259dde0395",
+      "name": "AUTH - Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT step, email FROM auth_flow WHERE session_id = $1 LIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.sessionId }}"
+        }
+      },
+      "id": "b0b2b7ef-056a-4d3a-ae56-c9f9765c6139",
+      "name": "DB - Get Auth Flow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        240,
+        208
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ab812263-9916-402e-9837-904794dfba59",
+                    "leftValue": "={{ $json.step }}",
+                    "rightValue": "awaiting_code",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Code"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a953f15d-a982-4210-8fe1-7d18ca15c9ff",
+                    "leftValue": "={{ $json.step }}",
+                    "rightValue": "awaiting_consent",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Consent"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "8cc7f33a-d239-46b3-ac75-e7c59fac9407",
+      "name": "AUTH - Route Step",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        480,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "208f74e6-dc37-4cba-adda-58d9a7844331",
+              "name": "output",
+              "value": "Cette étape arrive bientôt.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5df9c30e-62c7-467d-89f9-6e7c40875021",
+      "name": "AUTH - Pending Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('AUTH - Start').first().json;\nconst text = String(input.chatInput ?? '').trim();\nconst match = text.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}/);\nconst email = match ? match[0].toLowerCase() : null;\nreturn [{\n  json: {\n    sessionId: input.sessionId,\n    email,\n    valid: Boolean(email) && email.length <= 254,\n    attempted: text.includes('@')\n  }\n}];"
+      },
+      "id": "53870d8f-c3d5-4c02-80a4-287295ce67ef",
+      "name": "AUTH - Extract Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a808a78b-cc97-4733-9718-24a825e22f71",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a007dfbd-4fbe-46fc-8bfc-3a946f4c3cee",
+      "name": "AUTH - Email Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO auth_flow (session_id, step, email, updated_at) VALUES ($1, 'awaiting_code', $2, NOW()) ON CONFLICT (session_id) DO UPDATE SET step = EXCLUDED.step, email = EXCLUDED.email, updated_at = NOW();",
+        "options": {
+          "queryReplacement": "={{ [$json.sessionId, $json.email] }}"
+        }
+      },
+      "id": "20cee60b-8095-4b8e-b71f-c5fe0d893a7b",
+      "name": "DB - Save Email",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1200,
+        208
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9fc41d1c-cf7d-47e3-9676-d1207fe41360",
+              "name": "output",
+              "value": "=Merci ! Je t'envoie un code de vérification à {{ $('AUTH - Extract Email').item.json.email }}.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "04d1e53c-cedf-493f-82af-a89c203c66a8",
+      "name": "AUTH - Ask Code Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1440,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO auth_flow (session_id, step, email, updated_at) VALUES ($1, 'awaiting_email', NULL, NOW()) ON CONFLICT (session_id) DO UPDATE SET step = EXCLUDED.step, email = NULL, updated_at = NOW();",
+        "options": {
+          "queryReplacement": "={{ $json.sessionId }}"
+        }
+      },
+      "id": "67c682df-4b78-42b2-a388-3c1ddbec6a7c",
+      "name": "DB - Set Awaiting Email",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1200,
+        400
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f49c89e3-1036-4666-ab0c-3c2a47ea3085",
+              "name": "output",
+              "value": "={{ $('AUTH - Extract Email').item.json.attempted ? \"Cette adresse email ne semble pas valide. Peux-tu vérifier et me la renvoyer ?\" : \"Bonjour ! Je suis Persona, ta newsletter d'actualités personnalisée. Pour commencer, indique-moi ton adresse email.\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e715438a-1b55-4b19-bb91-b489961f2d70",
+      "name": "AUTH - Welcome Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1440,
+        400
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AUTH - Start": {
+      "main": [
+        [
+          {
+            "node": "DB - Get Auth Flow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Get Auth Flow": {
+      "main": [
+        [
+          {
+            "node": "AUTH - Route Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTH - Route Step": {
+      "main": [
+        [
+          {
+            "node": "AUTH - Pending Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AUTH - Pending Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AUTH - Extract Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTH - Extract Email": {
+      "main": [
+        [
+          {
+            "node": "AUTH - Email Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTH - Email Valid?": {
+      "main": [
+        [
+          {
+            "node": "DB - Save Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DB - Set Awaiting Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Save Email": {
+      "main": [
+        [
+          {
+            "node": "AUTH - Ask Code Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Set Awaiting Email": {
+      "main": [
+        [
+          {
+            "node": "AUTH - Welcome Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8a0e4b97-307d-47aa-8178-907c39d8fe47",
+  "meta": {
+    "instanceId": "e2994b310ac8273141353449df49ac6619c260178049e5d642618a4e7dd49701"
+  },
+  "nodeGroups": [],
+  "id": "tnWQU13NpOAZdltB",
+  "tags": []
+}
