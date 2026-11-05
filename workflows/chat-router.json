@@ -11,7 +11,7 @@
       "typeVersion": 1.1,
       "position": [
         1344,
-        272
+        256
       ],
       "webhookId": "persona-chat"
     },
@@ -28,8 +28,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1584,
-        272
+        1568,
+        256
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -76,8 +76,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1824,
-        272
+        1792,
+        256
       ]
     },
     {
@@ -120,8 +120,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        2064,
-        272
+        2016,
+        256
       ],
       "notes": "authenticated = true -> Agent. Tout le reste (false, absent, inattendu) -> Auth par défaut."
     },
@@ -145,8 +145,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2304,
-        160
+        2464,
+        256
       ],
       "notes": "Placeholder, remplacé plus tard par l'agent. Garde tous les champs du contexte (user_id, sessionId...)."
     },
@@ -174,9 +174,89 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        2304,
-        368
+        2240,
+        160
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "083a201d-3377-4fe1-9963-851f596519dd",
+              "leftValue": "={{ $json.chatInput.toLowerCase() }}",
+              "rightValue": "d[ée]connect|d[ée]connexion|logout",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        2240,
+        352
+      ],
+      "id": "bf0af231-2ee5-43b5-b990-906bd01eacd7",
+      "name": "AGENT - Is Logout?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM sessions WHERE session_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $('CHAT - Build Context').item.json.sessionId }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        2464,
+        448
+      ],
+      "id": "1844afdf-d5ea-4abc-bf90-a7029d4ff52b",
+      "name": "DB - Delete Session",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0266b7e8-a039-46a0-a040-d1e436d10ba1",
+              "name": "output",
+              "value": "Tu es déconnecté(e). À bientôt sur Persona !",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2688,
+        448
+      ],
+      "id": "b324ac3f-9443-4ddd-8892-781677615355",
+      "name": "AGENT - Logout Reply"
     }
   ],
   "pinData": {},
@@ -218,7 +298,7 @@
       "main": [
         [
           {
-            "node": "AGENT - Test Reply",
+            "node": "AGENT - Is Logout?",
             "type": "main",
             "index": 0
           }
@@ -231,6 +311,35 @@
           }
         ]
       ]
+    },
+    "AGENT - Is Logout?": {
+      "main": [
+        [
+          {
+            "node": "DB - Delete Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AGENT - Test Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Delete Session": {
+      "main": [
+        [
+          {
+            "node": "AGENT - Logout Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -238,7 +347,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "be22bb6f-edd4-4f7c-8c76-795be48b7c78",
+  "versionId": "67103f3e-82fc-4e7e-bd55-e23e39d7c842",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "e2994b310ac8273141353449df49ac6619c260178049e5d642618a4e7dd49701"
