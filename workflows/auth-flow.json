@@ -411,6 +411,404 @@
         2048,
         336
       ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, code_hash, attempts FROM otp WHERE email = $1 AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.email }}"
+        }
+      },
+      "id": "03313fb6-5ebc-47fb-9e98-9c591caf436e",
+      "name": "DB - Get Active OTP",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1088,
+        -500
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst { sessionId, chatInput } = $('AUTH - Start').first().json;\nconst { email } = $('DB - Get Auth Flow').first().json;\nconst otp = $input.first().json;\nconst match = String(chatInput ?? '').match(/\\b\\d{6}\\b/);\nconst base = { sessionId, email, otpId: otp.id ?? null };\nif (!match) return [{ json: { ...base, status: 'format' } }];\nif (!otp.id) return [{ json: { ...base, status: 'expired' } }];\nif (otp.attempts >= 3) return [{ json: { ...base, status: 'blocked' } }];\nconst hash = crypto.createHash('sha256').update(match[0]).digest();\nconst stored = Buffer.from(otp.code_hash, 'hex');\nconst ok = stored.length === hash.length && crypto.timingSafeEqual(hash, stored);\nif (ok) return [{ json: { ...base, status: 'valid' } }];\nconst attempts = otp.attempts + 1;\nreturn [{ json: { ...base, status: attempts >= 3 ? 'blocked' : 'invalid', attemptsLeft: 3 - attempts } }];"
+      },
+      "id": "7402e5fa-6c32-4527-a193-885d955cdf7f",
+      "name": "AUTH - Verify Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        -500
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "6bed9a28-a26e-44d6-b5d1-2fb2ffb09bd8",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "valid",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Valid"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "36dc368e-94a7-49bc-9f98-cd495c613353",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "invalid",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Invalid"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "3cd72452-ad11-4541-99e5-04634986bb3c",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "format",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Format"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallback": "Retry"
+        }
+      },
+      "id": "f4a72dc1-078c-4dd5-a9c1-e6a671c0cf1c",
+      "name": "AUTH - Route Code Result",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1568,
+        -500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE otp SET expires_at = NOW() WHERE id = $1;",
+        "options": {
+          "queryReplacement": "={{ $json.otpId }}"
+        }
+      },
+      "id": "27934b1e-4b24-4734-b60f-b9f289f11ceb",
+      "name": "DB - Consume OTP",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1808,
+        -800
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id FROM users WHERE email = $1 LIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $('AUTH - Verify Code').item.json.email }}"
+        }
+      },
+      "id": "ce2eee56-b1d9-463b-944b-6ed139c583d4",
+      "name": "DB - Find User",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2048,
+        -800
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ee92c844-de09-4f88-b05e-13dfd8c054c2",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6ccefd91-c329-436d-a93c-0626b256c3dd",
+      "name": "AUTH - User Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2288,
+        -800
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "25e3ee5c-b560-4942-a231-0c1bf4a355f0",
+              "name": "output",
+              "value": "Code validé ! Bon retour sur Persona.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cb9d8299-3ba6-4dcb-9bce-d11e56abad7a",
+      "name": "AUTH - Login Pending Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2528,
+        -900
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE auth_flow SET step = 'awaiting_consent', updated_at = NOW() WHERE session_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $('AUTH - Verify Code').item.json.sessionId }}"
+        }
+      },
+      "id": "dc9438ac-9d28-4231-9e6e-6a45e54c0fe0",
+      "name": "DB - Set Awaiting Consent",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2528,
+        -700
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "075fcbe2-91e5-4d34-ba8d-3e9c56f3b0dc",
+              "name": "output",
+              "value": "Code validé ! Il ne reste qu'une étape avant de créer ton compte.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "790604a0-bea3-4cda-8644-9cd684d50268",
+      "name": "AUTH - Code Valid Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2768,
+        -700
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE otp SET attempts = attempts + 1 WHERE id = $1;",
+        "options": {
+          "queryReplacement": "={{ $json.otpId }}"
+        }
+      },
+      "id": "4e20ea4b-0a80-42e0-a4c6-f7ced21f6f38",
+      "name": "DB - Increment Attempts",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1808,
+        -550
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0bba4057-e57b-4737-9e27-3909f9e3abb2",
+              "name": "output",
+              "value": "=Code incorrect. Il te reste {{ $('AUTH - Verify Code').item.json.attemptsLeft }} essai(s).",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1f826855-d33c-4214-9c48-d08e880e6578",
+      "name": "AUTH - Invalid Code Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2048,
+        -550
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "deb9937c-ff52-4251-8faa-ce30c035cf55",
+              "name": "output",
+              "value": "Envoie-moi le code à 6 chiffres que tu as reçu par email.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "092a4890-6309-4fc6-9a3c-f1dac8fdfabe",
+      "name": "AUTH - Code Format Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1808,
+        -350
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH invalidated AS (UPDATE otp SET expires_at = NOW() WHERE email = $2 AND expires_at > NOW()) UPDATE auth_flow SET step = 'awaiting_email', email = NULL, updated_at = NOW() WHERE session_id = $1;",
+        "options": {
+          "queryReplacement": "={{ [$json.sessionId, $json.email] }}"
+        }
+      },
+      "id": "ee48bd83-4d69-4026-915e-e649e5b17137",
+      "name": "DB - Reset Auth Flow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1808,
+        -150
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4a4774ca-06c4-4b5a-af62-61d6b22f8fa0",
+              "name": "output",
+              "value": "={{ $('AUTH - Verify Code').item.json.status === 'blocked' ? \"Trop d'essais incorrects. Renvoie ton email pour recevoir un nouveau code.\" : \"Ce code a expiré. Renvoie ton email pour recevoir un nouveau code.\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "90a66819-a0fd-4191-9171-58db784d7310",
+      "name": "AUTH - Retry Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2048,
+        -150
+      ]
     }
   ],
   "pinData": {},
@@ -441,7 +839,7 @@
       "main": [
         [
           {
-            "node": "AUTH - Pending Reply",
+            "node": "DB - Get Active OTP",
             "type": "main",
             "index": 0
           }
@@ -569,6 +967,133 @@
         [
           {
             "node": "DB - Save Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Get Active OTP": {
+      "main": [
+        [
+          {
+            "node": "AUTH - Verify Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTH - Verify Code": {
+      "main": [
+        [
+          {
+            "node": "AUTH - Route Code Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTH - Route Code Result": {
+      "main": [
+        [
+          {
+            "node": "DB - Consume OTP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DB - Increment Attempts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AUTH - Code Format Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DB - Reset Auth Flow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Consume OTP": {
+      "main": [
+        [
+          {
+            "node": "DB - Find User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Find User": {
+      "main": [
+        [
+          {
+            "node": "AUTH - User Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTH - User Exists?": {
+      "main": [
+        [
+          {
+            "node": "AUTH - Login Pending Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DB - Set Awaiting Consent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Set Awaiting Consent": {
+      "main": [
+        [
+          {
+            "node": "AUTH - Code Valid Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Increment Attempts": {
+      "main": [
+        [
+          {
+            "node": "AUTH - Invalid Code Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Reset Auth Flow": {
+      "main": [
+        [
+          {
+            "node": "AUTH - Retry Reply",
             "type": "main",
             "index": 0
           }
