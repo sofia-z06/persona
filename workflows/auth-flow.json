@@ -11,7 +11,7 @@
       "typeVersion": 1.1,
       "position": [
         368,
-        336
+        -128
       ]
     },
     {
@@ -27,8 +27,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        608,
-        336
+        592,
+        -128
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -47,7 +47,7 @@
                 "options": {
                   "caseSensitive": true,
                   "leftValue": "",
-                  "typeValidation": "loose",
+                  "typeValidation": "strict",
                   "version": 2
                 },
                 "conditions": [
@@ -71,7 +71,7 @@
                 "options": {
                   "caseSensitive": true,
                   "leftValue": "",
-                  "typeValidation": "loose",
+                  "typeValidation": "strict",
                   "version": 2
                 },
                 "conditions": [
@@ -101,31 +101,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        848,
-        336
-      ]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "208f74e6-dc37-4cba-adda-58d9a7844331",
-              "name": "output",
-              "value": "Cette étape arrive bientôt.",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "69478d19-ec81-4610-bb72-cec5538eeddc",
-      "name": "AUTH - Pending Reply",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        1088,
-        128
+        816,
+        -144
       ]
     },
     {
@@ -137,8 +114,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1088,
-        432
+        1040,
+        544
       ]
     },
     {
@@ -171,8 +148,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1328,
-        432
+        1264,
+        544
       ]
     },
     {
@@ -188,8 +165,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2768,
-        128
+        2608,
+        256
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -218,8 +195,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3008,
-        128
+        2832,
+        256
       ]
     },
     {
@@ -235,8 +212,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1568,
-        528
+        1488,
+        544
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -265,8 +242,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1808,
-        528
+        1712,
+        544
       ]
     },
     {
@@ -282,8 +259,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1568,
-        240
+        1488,
+        352
       ],
       "credentials": {
         "postgres": {
@@ -321,8 +298,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1808,
-        240
+        1712,
+        352
       ]
     },
     {
@@ -334,8 +311,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2048,
-        128
+        1936,
+        256
       ]
     },
     {
@@ -351,8 +328,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2288,
-        128
+        2160,
+        256
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -378,8 +355,8 @@
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        2528,
-        128
+        2384,
+        256
       ],
       "webhookId": "092da69d-d88b-4814-baba-ccc7ca59e31c",
       "credentials": {
@@ -408,8 +385,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2048,
-        336
+        1936,
+        448
       ]
     },
     {
@@ -425,8 +402,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1088,
-        -496
+        1040,
+        -624
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -445,8 +422,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1328,
-        -496
+        1264,
+        -624
       ]
     },
     {
@@ -536,8 +513,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        1568,
-        -496
+        1488,
+        -656
       ]
     },
     {
@@ -553,8 +530,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1808,
-        -800
+        1712,
+        -832
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -577,8 +554,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2048,
-        -800
+        1936,
+        -832
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -618,8 +595,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2288,
-        -800
+        2160,
+        -832
       ]
     },
     {
@@ -635,8 +612,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2528,
-        -704
+        2384,
+        -480
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -653,7 +630,7 @@
             {
               "id": "075fcbe2-91e5-4d34-ba8d-3e9c56f3b0dc",
               "name": "output",
-              "value": "Code validé ! Il ne reste qu'une étape avant de créer ton compte.",
+              "value": "Code validé ! Avant de créer ton compte, voici ce que Persona enregistre : ton email, tes centres d'intérêt et ton horaire d'envoi. Ces données servent uniquement à t'envoyer ta newsletter personnalisée, et sont conservées tant que tu restes inscrit(e). Tu peux les supprimer à tout moment en me le demandant. Tu acceptes ? Réponds « oui » ou « non ».",
               "type": "string"
             }
           ]
@@ -665,8 +642,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2768,
-        -704
+        2608,
+        -480
       ]
     },
     {
@@ -682,8 +659,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1808,
-        -544
+        1712,
+        -640
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -712,8 +689,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2048,
-        -544
+        1936,
+        -640
       ]
     },
     {
@@ -735,8 +712,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1808,
-        -352
+        1712,
+        -448
       ]
     },
     {
@@ -752,8 +729,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1808,
-        -144
+        1712,
+        -256
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -782,8 +759,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2048,
-        -144
+        1936,
+        -256
       ]
     },
     {
@@ -791,14 +768,14 @@
         "operation": "executeQuery",
         "query": "INSERT INTO sessions (session_id, user_id, expires_at) VALUES ($1, $2, NOW() + INTERVAL '24 hours') ON CONFLICT (session_id) DO UPDATE SET user_id = EXCLUDED.user_id, expires_at = EXCLUDED.expires_at;",
         "options": {
-          "queryReplacement": "={{ [$('AUTH - Verify Code').item.json.sessionId, $json.id] }}"
+          "queryReplacement": "={{ [$('AUTH - Start').first().json.sessionId, $json.id] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.8,
       "position": [
-        2512,
-        -832
+        2384,
+        -816
       ],
       "id": "370e8d1f-8fa9-49b3-b4f2-74d6ca4faed2",
       "name": "DB - Create Session",
@@ -815,14 +792,14 @@
         "operation": "executeQuery",
         "query": "DELETE FROM auth_flow WHERE session_id = $1;",
         "options": {
-          "queryReplacement": "={{ $('AUTH - Verify Code').item.json.sessionId }}"
+          "queryReplacement": "={{ $('AUTH - Start').first().json.sessionId }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.8,
       "position": [
-        2736,
-        -832
+        2608,
+        -816
       ],
       "id": "d2f41a24-13de-4ead-bd15-04191c26dab1",
       "name": "DB - Clear Auth Flow",
@@ -841,7 +818,7 @@
             {
               "id": "649bd432-af40-4391-b508-4d75a3b16446",
               "name": "output",
-              "value": "Code validé, tu es connecté(e) ! Je suis prête à t'aider.",
+              "value": "C'est tout bon, tu es connecté(e) ! Je suis prête à t'aider.",
               "type": "string"
             }
           ]
@@ -851,11 +828,186 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        2960,
-        -832
+        2832,
+        -816
       ],
       "id": "bcb01c95-99da-45de-943d-02188cee722c",
       "name": "AUTH - Login Reply"
+    },
+    {
+      "parameters": {
+        "jsCode": "   const { sessionId, chatInput } = $('AUTH - Start').first().json;\n   const { email } = $('DB - Get Auth Flow').first().json;\n   const text = String(chatInput ?? '').trim().toLowerCase();\n   const accept = /^(oui|j['’]accepte|yes)\\b/.test(text);\n   const refuse = /^(non|je refuse|no)\\b/.test(text);\n   return [{ json: { sessionId, email, answer: accept ? 'accept' : refuse ? 'refuse' : 'unknown' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1712,
+        -48
+      ],
+      "id": "6753a984-7e7e-4f7f-886a-b3b1d719dfb6",
+      "name": "AUTH - Read Consent"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.answer }}",
+                    "rightValue": "accept",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "7d4613a4-7958-4a2d-b515-3273dc80def4"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Accept"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "id": "bbc6b304-ecbf-4fd9-b2a9-04018d618faf",
+                    "leftValue": "={{ $json.answer }}",
+                    "rightValue": "refuse",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Refuse"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Ask"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.5,
+      "position": [
+        1936,
+        -64
+      ],
+      "id": "424e2bf2-5480-44f6-8097-309979ea42a3",
+      "name": "AUTH - Route Consent"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO users (email, consent_at) VALUES ($1, NOW()) ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email RETURNING id;",
+        "options": {
+          "queryReplacement": "={{ $json.email }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        2160,
+        -432
+      ],
+      "id": "707cb3d2-5ebe-444a-a329-64936a120e15",
+      "name": "DB - Create User",
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH removed AS (DELETE FROM otp WHERE email = $2) DELETE FROM auth_flow WHERE session_id = $1;",
+        "options": {
+          "queryReplacement": "={{ [$json.sessionId, $json.email] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        2160,
+        -128
+      ],
+      "id": "114c1fbb-7af0-4bb6-9b28-007fbc0c027e",
+      "name": "DB - Forget Email",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "94cba0a5-e746-49b3-b262-f2171e5acf02",
+              "name": "output",
+              "value": "D'accord, je n'ai rien enregistré et ton email a été effacé. Si tu changes d'avis, renvoie-moi simplement ton adresse email.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2384,
+        -128
+      ],
+      "id": "8fb795ba-4d1c-4a7e-95d4-e1906a87b17d",
+      "name": "AUTH - Refuse Reply"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cc0fd6e2-a0b0-400c-ab3c-1e212daa94a0",
+              "name": "output",
+              "value": "Pour créer ton compte, j'ai besoin de ton accord explicite. Réponds « oui » pour accepter, ou « non » pour refuser.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2160,
+        64
+      ],
+      "id": "eda3fe16-57c6-44f4-9f91-e2e487e97e76",
+      "name": "AUTH - Consent Ask Reply"
     }
   ],
   "pinData": {},
@@ -893,7 +1045,7 @@
         ],
         [
           {
-            "node": "AUTH - Pending Reply",
+            "node": "AUTH - Read Consent",
             "type": "main",
             "index": 0
           }
@@ -1168,6 +1320,64 @@
           }
         ]
       ]
+    },
+    "AUTH - Read Consent": {
+      "main": [
+        [
+          {
+            "node": "AUTH - Route Consent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTH - Route Consent": {
+      "main": [
+        [
+          {
+            "node": "DB - Create User",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DB - Forget Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AUTH - Consent Ask Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Create User": {
+      "main": [
+        [
+          {
+            "node": "DB - Create Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Forget Email": {
+      "main": [
+        [
+          {
+            "node": "AUTH - Refuse Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -1175,7 +1385,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "a766320f-058b-4848-966a-7545102e7d99",
+  "versionId": "b8137eb9-3758-4720-9688-62d0e1f2b51b",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "e2994b310ac8273141353449df49ac6619c260178049e5d642618a4e7dd49701"
