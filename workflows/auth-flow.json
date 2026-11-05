@@ -426,15 +426,15 @@
       "typeVersion": 2.5,
       "position": [
         1088,
-        -500
+        -496
       ],
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "8ePVlrnO8iF8w1rz",
           "name": "postgres"
         }
-      },
-      "alwaysOutputData": true
+      }
     },
     {
       "parameters": {
@@ -446,7 +446,7 @@
       "typeVersion": 2,
       "position": [
         1328,
-        -500
+        -496
       ]
     },
     {
@@ -528,8 +528,7 @@
           ]
         },
         "options": {
-          "fallbackOutput": "extra",
-          "renameFallback": "Retry"
+          "fallbackOutput": "extra"
         }
       },
       "id": "f4a72dc1-078c-4dd5-a9c1-e6a671c0cf1c",
@@ -538,7 +537,7 @@
       "typeVersion": 3.2,
       "position": [
         1568,
-        -500
+        -496
       ]
     },
     {
@@ -557,13 +556,13 @@
         1808,
         -800
       ],
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "8ePVlrnO8iF8w1rz",
           "name": "postgres"
         }
-      },
-      "alwaysOutputData": true
+      }
     },
     {
       "parameters": {
@@ -581,13 +580,13 @@
         2048,
         -800
       ],
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "8ePVlrnO8iF8w1rz",
           "name": "postgres"
         }
-      },
-      "alwaysOutputData": true
+      }
     },
     {
       "parameters": {
@@ -595,7 +594,7 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "loose",
+            "typeValidation": "strict",
             "version": 2
           },
           "conditions": [
@@ -625,29 +624,6 @@
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "25e3ee5c-b560-4942-a231-0c1bf4a355f0",
-              "name": "output",
-              "value": "Code validé ! Bon retour sur Persona.",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "cb9d8299-3ba6-4dcb-9bce-d11e56abad7a",
-      "name": "AUTH - Login Pending Reply",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        2528,
-        -900
-      ]
-    },
-    {
-      "parameters": {
         "operation": "executeQuery",
         "query": "UPDATE auth_flow SET step = 'awaiting_consent', updated_at = NOW() WHERE session_id = $1;",
         "options": {
@@ -660,15 +636,15 @@
       "typeVersion": 2.5,
       "position": [
         2528,
-        -700
+        -704
       ],
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "8ePVlrnO8iF8w1rz",
           "name": "postgres"
         }
-      },
-      "alwaysOutputData": true
+      }
     },
     {
       "parameters": {
@@ -690,7 +666,7 @@
       "typeVersion": 3.4,
       "position": [
         2768,
-        -700
+        -704
       ]
     },
     {
@@ -707,15 +683,15 @@
       "typeVersion": 2.5,
       "position": [
         1808,
-        -550
+        -544
       ],
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "8ePVlrnO8iF8w1rz",
           "name": "postgres"
         }
-      },
-      "alwaysOutputData": true
+      }
     },
     {
       "parameters": {
@@ -737,7 +713,7 @@
       "typeVersion": 3.4,
       "position": [
         2048,
-        -550
+        -544
       ]
     },
     {
@@ -760,7 +736,7 @@
       "typeVersion": 3.4,
       "position": [
         1808,
-        -350
+        -352
       ]
     },
     {
@@ -777,15 +753,15 @@
       "typeVersion": 2.5,
       "position": [
         1808,
-        -150
+        -144
       ],
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "8ePVlrnO8iF8w1rz",
           "name": "postgres"
         }
-      },
-      "alwaysOutputData": true
+      }
     },
     {
       "parameters": {
@@ -807,8 +783,79 @@
       "typeVersion": 3.4,
       "position": [
         2048,
-        -150
+        -144
       ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO sessions (session_id, user_id, expires_at) VALUES ($1, $2, NOW() + INTERVAL '24 hours') ON CONFLICT (session_id) DO UPDATE SET user_id = EXCLUDED.user_id, expires_at = EXCLUDED.expires_at;",
+        "options": {
+          "queryReplacement": "={{ [$('AUTH - Verify Code').item.json.sessionId, $json.id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        2512,
+        -832
+      ],
+      "id": "370e8d1f-8fa9-49b3-b4f2-74d6ca4faed2",
+      "name": "DB - Create Session",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM auth_flow WHERE session_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $('AUTH - Verify Code').item.json.sessionId }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        2736,
+        -832
+      ],
+      "id": "d2f41a24-13de-4ead-bd15-04191c26dab1",
+      "name": "DB - Clear Auth Flow",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "649bd432-af40-4391-b508-4d75a3b16446",
+              "name": "output",
+              "value": "Code validé, tu es connecté(e) ! Je suis prête à t'aider.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2960,
+        -832
+      ],
+      "id": "bcb01c95-99da-45de-943d-02188cee722c",
+      "name": "AUTH - Login Reply"
     }
   ],
   "pinData": {},
@@ -1053,7 +1100,7 @@
       "main": [
         [
           {
-            "node": "AUTH - Login Pending Reply",
+            "node": "DB - Create Session",
             "type": "main",
             "index": 0
           }
@@ -1099,6 +1146,28 @@
           }
         ]
       ]
+    },
+    "DB - Create Session": {
+      "main": [
+        [
+          {
+            "node": "DB - Clear Auth Flow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Clear Auth Flow": {
+      "main": [
+        [
+          {
+            "node": "AUTH - Login Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -1106,8 +1175,9 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "852eda90-b190-4958-b31d-eb9c7d962721",
+  "versionId": "a766320f-058b-4848-966a-7545102e7d99",
   "meta": {
+    "templateCredsSetupCompleted": true,
     "instanceId": "e2994b310ac8273141353449df49ac6619c260178049e5d642618a4e7dd49701"
   },
   "nodeGroups": [],
