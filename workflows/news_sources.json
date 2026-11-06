@@ -255,10 +255,10 @@
     },
     {
       "parameters": {
-        "jsCode": "// Unified schema: title, url, summary, published_at, source, topic\nreturn $input.all().map(i => {\n  const j = i.json;\n  const src = (typeof j.source === 'object' && j.source) ? j.source.name : j.source;\n  return { json: {\n    title: j.title || '',\n    url: j.link || j.url || '',\n    summary: j.contentSnippet || j.description || '',\n    published_at: j.isoDate || j.publishedAt || null,\n    source: src || 'unknown',\n    topic: j.topic || 'international'\n  } };\n});"
+        "jsCode": "// [News] Normaliser + dédupliquer (issue #17)\n// Format commun : title, url, source, description, published_at (+ topic)\nconst MAX_AGE_HOURS = 48;     // ignorer les articles plus vieux\nconst TITLE_SIMILARITY = 0.8; // 0..1, au-dessus = titres quasi identiques\n\nconst now = Date.now();\n\n// Clé d'URL : sans http(s), sans www, sans #, sans paramètres de tracking, sans / final\nfunction urlKey(u) {\n  // sans new URL() : pas toujours dispo dans le Code node de n8n\n  let s = String(u || '').trim();\n  const m = s.match(/^https?:\\/\\/([^\\/?#]+)([^?#]*)(\\?[^#]*)?/i);\n  if (!m) return null; // URL invalide\n  const host = m[1].toLowerCase().replace(/^www\\./, '');\n  const path = m[2].replace(/\\/+$/, '');\n  const params = (m[3] || '').replace(/^\\?/, '').split('&')\n    .filter(p => p && !/^(utm_|xtor|at_|fbclid|gclid)/i.test(p))\n    .sort().join('&');\n  return host + path + (params ? '?' + params : '');\n}\n\n// Titre simplifié : minuscules, sans accents ni ponctuation\nfunction words(t) {\n  const s = String(t || '').toLowerCase()\n    .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/[^a-z0-9 ]/g, ' ');\n  return new Set(s.split(/\\s+/).filter(w => w.length > 2));\n}\n\n// Similarité entre deux titres (mots en commun / mots au total)\nfunction similarity(a, b) {\n  if (!a.size || !b.size) return 0;\n  let common = 0;\n  for (const w of a) if (b.has(w)) common++;\n  return common / (a.size + b.size - common);\n}\n\nfunction stripHtml(h) {\n  return String(h || '').replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim();\n}\n\n// 1. Mise au format commun\nconst articles = $input.all().map(i => {\n  const j = i.json;\n  const src = (j.source && typeof j.source === 'object') ? j.source.name : j.source;\n  const date = new Date(j.isoDate || j.publishedAt || j.pubDate || j.published_at || '');\n  return {\n    title: stripHtml(j.title),\n    url: String(j.link || j.url || '').trim(),\n    source: src || 'unknown',\n    description: stripHtml(j.contentSnippet || j.description || j.summary).slice(0, 500),\n    published_at: isNaN(date.getTime()) ? null : date.toISOString(),\n    topic: j.topic || 'international',\n  };\n});\n\n// 2. Filtrage : URL valide, titre, date de moins de 48h\nconst recent = articles.filter(a => {\n  if (!a.title || !urlKey(a.url)) return false;\n  if (!a.published_at) return false;\n  const ageH = (now - new Date(a.published_at).getTime()) / 3600000;\n  return ageH >= -1 && ageH <= MAX_AGE_HOURS;\n});\n\n// 3. Plus récents d'abord, puis dédoublonnage\nrecent.sort((a, b) => b.published_at.localeCompare(a.published_at));\nconst seenUrls = new Set();\nconst kept = [];\nfor (const a of recent) {\n  const key = urlKey(a.url);\n  if (seenUrls.has(key)) continue;                       // même URL\n  const w = words(a.title);\n  if (kept.some(k => similarity(k._w, w) >= TITLE_SIMILARITY)) continue; // titre quasi identique\n  seenUrls.add(key);\n  kept.push({ ...a, _w: w });\n}\n\nreturn kept.map(({ _w, ...a }) => ({ json: a }));\n"
       },
       "id": "n-normalize",
-      "name": "Normalize",
+      "name": "Normalize + Dedupe",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -413,7 +413,7 @@
       "main": [
         [
           {
-            "node": "Normalize",
+            "node": "Normalize + Dedupe",
             "type": "main",
             "index": 0
           }
@@ -425,4 +425,4 @@
   "settings": {
     "executionOrder": "v1"
   }
-} 
+}
