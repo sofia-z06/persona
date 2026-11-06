@@ -1,0 +1,100 @@
+{
+  "name": "PERSONA - TOOL - get_my_profile",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "user_id",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0c6e9c9d-7b01-4ba7-a2eb-b82d003ea7b9",
+      "name": "TOOL - Start"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT email, pseudo, interests, send_time, timezone, status FROM users WHERE id = $1;",
+        "options": {
+          "queryReplacement": "=   {{ $json.user_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        224,
+        0
+      ],
+      "id": "109b1068-65aa-4eeb-91bd-2e6da9ac54c4",
+      "name": "DB - Get Profile",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "8ePVlrnO8iF8w1rz",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "   const p = $input.first().json;\n\n   if (!p.email) {\n     return [{ json: { ok: false, message: \"Profil introuvable.\" } }];\n   }\n\n   return [{\n     json: {\n       ok: true,\n       message: \"Profil de l'utilisateur connecté.\",\n       data: {\n         email: p.email,\n         pseudo: p.pseudo ?? null,\n         interests: p.interests ?? [],\n         send_time: p.send_time ? String(p.send_time).slice(0, 5) : null,\n         timezone: p.timezone,\n         status: p.status\n       }\n     }\n   }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "4f6dff10-6030-4093-ad05-54fd5e7d10d7",
+      "name": "TOOL - Format Profile"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "TOOL - Start": {
+      "main": [
+        [
+          {
+            "node": "DB - Get Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Get Profile": {
+      "main": [
+        [
+          {
+            "node": "TOOL - Format Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "6fcf5f32-c7b9-4934-af9f-896e3441d7dd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e2994b310ac8273141353449df49ac6619c260178049e5d642618a4e7dd49701"
+  },
+  "nodeGroups": [],
+  "id": "dcHeIROIpCVYVbY4",
+  "tags": []
+}
