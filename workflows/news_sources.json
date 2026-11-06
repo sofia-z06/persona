@@ -1,0 +1,501 @@
+{
+  "name": "Persona - News sources",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "n-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.numerama.com/sciences/feed/",
+        "options": {}
+      },
+      "id": "n-rss-tech",
+      "name": "RSS espace",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        288,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.futura-sciences.com/rss/actualites.xml",
+        "options": {}
+      },
+      "id": "n-rss-science",
+      "name": "RSS science",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        288,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.actuia.com/feed/",
+        "options": {}
+      },
+      "id": "n-rss-sport",
+      "name": "RSS ia",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        288,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.france24.com/fr/rss",
+        "options": {}
+      },
+      "id": "n-rss-actu",
+      "name": "RSS international",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        288,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "topic",
+              "value": "espace",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "source",
+              "value": "Numerama Sciences",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "n-tag-tech",
+      "name": "Tag espace",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        528,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "topic",
+              "value": "science",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "source",
+              "value": "Futura Sciences",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "n-tag-science",
+      "name": "Tag science",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        528,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "topic",
+              "value": "ia",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "source",
+              "value": "ActuIA",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "n-tag-sport",
+      "name": "Tag ia",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        528,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "topic",
+              "value": "international",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "source",
+              "value": "France 24",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "n-tag-actu",
+      "name": "Tag international",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        528,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://gnews.io/api/v4/top-headlines",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "category",
+              "value": "world"
+            },
+            {
+              "name": "lang",
+              "value": "fr"
+            },
+            {
+              "name": "country",
+              "value": "fr"
+            },
+            {
+              "name": "max",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "n-api",
+      "name": "API news",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        288,
+        608
+      ],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "WA0WNlSrRpGN2wuC",
+          "name": "News API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "articles",
+        "options": {}
+      },
+      "id": "n-split",
+      "name": "Split articles",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        528,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "numberInputs": 5
+      },
+      "id": "n-merge",
+      "name": "Merge sources",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        784,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// [News] Normaliser + dédupliquer (issue #17)\n// Format commun : title, url, source, description, published_at (+ topic)\nconst MAX_AGE_HOURS = 48;     // ignorer les articles plus vieux\nconst TITLE_SIMILARITY = 0.8; // 0..1, au-dessus = titres quasi identiques\n\nconst now = Date.now();\n\n// Clé d'URL : sans http(s), sans www, sans #, sans paramètres de tracking, sans / final\nfunction urlKey(u) {\n  // sans new URL() : pas toujours dispo dans le Code node de n8n\n  let s = String(u || '').trim();\n  const m = s.match(/^https?:\\/\\/([^\\/?#]+)([^?#]*)(\\?[^#]*)?/i);\n  if (!m) return null; // URL invalide\n  const host = m[1].toLowerCase().replace(/^www\\./, '');\n  const path = m[2].replace(/\\/+$/, '');\n  const params = (m[3] || '').replace(/^\\?/, '').split('&')\n    .filter(p => p && !/^(utm_|xtor|at_|fbclid|gclid)/i.test(p))\n    .sort().join('&');\n  return host + path + (params ? '?' + params : '');\n}\n\n// Titre simplifié : minuscules, sans accents ni ponctuation\nfunction words(t) {\n  const s = String(t || '').toLowerCase()\n    .normalize('NFD').replace(/[̀-ͯ]/g, '')\n    .replace(/[^a-z0-9 ]/g, ' ');\n  return new Set(s.split(/\\s+/).filter(w => w.length > 2));\n}\n\n// Similarité entre deux titres (mots en commun / mots au total)\nfunction similarity(a, b) {\n  if (!a.size || !b.size) return 0;\n  let common = 0;\n  for (const w of a) if (b.has(w)) common++;\n  return common / (a.size + b.size - common);\n}\n\nfunction stripHtml(h) {\n  return String(h || '').replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim();\n}\n\n// 1. Mise au format commun\nconst articles = $input.all().map(i => {\n  const j = i.json;\n  const src = (j.source && typeof j.source === 'object') ? j.source.name : j.source;\n  const date = new Date(j.isoDate || j.publishedAt || j.pubDate || j.published_at || '');\n  return {\n    title: stripHtml(j.title),\n    url: String(j.link || j.url || '').trim(),\n    source: src || 'unknown',\n    description: stripHtml(j.contentSnippet || j.description || j.summary).slice(0, 500),\n    published_at: isNaN(date.getTime()) ? null : date.toISOString(),\n    topic: j.topic || 'international',\n  };\n});\n\n// 2. Filtrage : URL valide, titre, date de moins de 48h\nconst recent = articles.filter(a => {\n  if (!a.title || !urlKey(a.url)) return false;\n  if (!a.published_at) return false;\n  const ageH = (now - new Date(a.published_at).getTime()) / 3600000;\n  return ageH >= -1 && ageH <= MAX_AGE_HOURS;\n});\n\n// 3. Plus récents d'abord, puis dédoublonnage\nrecent.sort((a, b) => b.published_at.localeCompare(a.published_at));\nconst seenUrls = new Set();\nconst kept = [];\nfor (const a of recent) {\n  const key = urlKey(a.url);\n  if (seenUrls.has(key)) continue;                       // même URL\n  const w = words(a.title);\n  if (kept.some(k => similarity(k._w, w) >= TITLE_SIMILARITY)) continue; // titre quasi identique\n  seenUrls.add(key);\n  kept.push({ ...a, _w: w });\n}\n\nreturn kept.map(({ _w, ...a }) => ({ json: a }));"
+      },
+      "id": "n-normalize",
+      "name": "Normalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// [News] Taguer les articles (mots-clés, 0 token)\n// Liste commune : doit être la même que celle acceptée par set_interests\nconst TAGS = {\n  espace:        ['espace', 'nasa', 'esa', 'spacex', 'fusee', 'satellite', 'astronaute', 'lune', 'mars', 'planete', 'galaxie', 'telescope', 'orbite', 'asteroide', 'cosmos', 'artemis'],\n  science:       ['science', 'scientifique', 'chercheur', 'etude', 'recherche', 'physique', 'chimie', 'biologie', 'decouverte', 'laboratoire', 'genetique', 'fossile'],\n  ia:            ['ia', 'intelligence artificielle', 'chatgpt', 'openai', 'llm', 'machine learning', 'deep learning', 'gemini', 'claude', 'anthropic', 'mistral', 'algorithme', 'robot', 'neurone'],\n  tech:          ['tech', 'technologie', 'logiciel', 'smartphone', 'apple', 'google', 'microsoft', 'cybersecurite', 'piratage', 'internet', 'informatique', 'startup', 'puce'],\n  international: ['international', 'monde', 'ukraine', 'russie', 'chine', 'etats-unis', 'israel', 'gaza', 'onu', 'otan', 'diplomatie', 'guerre', 'sommet', 'europe'],\n  politique:     ['politique', 'election', 'gouvernement', 'president', 'ministre', 'parlement', 'senat', 'assemblee', 'vote', 'parti', 'midterms'],\n  economie:      ['economie', 'bourse', 'inflation', 'entreprise', 'marche', 'croissance', 'emploi', 'banque', 'petrole', 'commerce'],\n  sante:         ['sante', 'maladie', 'medecin', 'hopital', 'vaccin', 'virus', 'cancer', 'traitement', 'epidemie'],\n  environnement: ['climat', 'environnement', 'rechauffement', 'pollution', 'biodiversite', 'energie', 'co2', 'ecologie', 'meteo'],\n};\n\nfunction clean(t) {\n  return ' ' + String(t || '').toLowerCase()\n    .normalize('NFD').replace(/[̀-ͯ]/g, '')\n    .replace(/[^a-z0-9 -]/g, ' ').replace(/\\s+/g, ' ') + ' ';\n}\n\nreturn $input.all().map(i => {\n  const a = i.json;\n  const text = clean(a.title + ' ' + a.title + ' ' + a.description); // titre compte double\n  const tags = [];\n  for (const [tag, words] of Object.entries(TAGS)) {\n    if (words.some(w => text.includes(' ' + w + ' ') || text.includes(' ' + w + 's '))) tags.push(tag);\n  }\n  // Garantie : au moins un tag (celui du flux d'origine)\n  if (!tags.length) tags.push(TAGS[a.topic] ? a.topic : 'international');\n  return { json: { ...a, tags } };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        304
+      ],
+      "id": "518da64c-3c51-4a44-b479-cb596d540b97",
+      "name": "Tag articles"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO articles (url, title, summary, source, tags, published_at)\nVALUES ($1, $2, $3, $4, ARRAY(SELECT jsonb_array_elements_text($5::jsonb)), $6::timestamptz)\nON CONFLICT (url) DO NOTHING;",
+        "options": {
+          "queryReplacement": "={{ [ $json.url, $json.title, $json.description, $json.source, JSON.stringify($json.tags), $json.published_at ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        1472,
+        304
+      ],
+      "id": "56c9f5e2-113a-4a7a-ad15-335bbb989f01",
+      "name": "DB - Save Articles",
+      "credentials": {
+        "postgres": {
+          "id": "koDcmjZ6QyS7MmwZ",
+          "name": "postgres"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "RSS espace",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS science",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS ia",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS international",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "API news",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS espace": {
+      "main": [
+        [
+          {
+            "node": "Tag espace",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS science": {
+      "main": [
+        [
+          {
+            "node": "Tag science",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS ia": {
+      "main": [
+        [
+          {
+            "node": "Tag ia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS international": {
+      "main": [
+        [
+          {
+            "node": "Tag international",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag espace": {
+      "main": [
+        [
+          {
+            "node": "Merge sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag science": {
+      "main": [
+        [
+          {
+            "node": "Merge sources",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Tag ia": {
+      "main": [
+        [
+          {
+            "node": "Merge sources",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Tag international": {
+      "main": [
+        [
+          {
+            "node": "Merge sources",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "API news": {
+      "main": [
+        [
+          {
+            "node": "Split articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split articles": {
+      "main": [
+        [
+          {
+            "node": "Merge sources",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Merge sources": {
+      "main": [
+        [
+          {
+            "node": "Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize": {
+      "main": [
+        [
+          {
+            "node": "Tag articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag articles": {
+      "main": [
+        [
+          {
+            "node": "DB - Save Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8f0d13b3-af82-4713-ae75-9599518da7d5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "77651b12194904de94a26f6ca97e0922f92fab4e56e206db979ea3ce4e89b83f"
+  },
+  "nodeGroups": [],
+  "id": "1G1XP5Pt1lvZGDIO",
+  "tags": []
+}
