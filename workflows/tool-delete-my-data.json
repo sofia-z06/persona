@@ -1,0 +1,176 @@
+{
+  "name": "PERSONA - TOOL - delete_my_data",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "user_id",
+              "type": "number"
+            },
+            {
+              "name": "session_id"
+            },
+            {
+              "name": "confirm",
+              "type": "boolean"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "87b5bf04-5940-4363-a8ce-3434b338b22a",
+      "name": "TOOL - Start"
+    },
+    {
+      "parameters": {
+        "jsCode": "const { user_id, session_id, confirm } = $input.first().json;\n\nif (confirm !== true) {\n  return [{\n    json: {\n      ok: false,\n      message: \"Suppression non effectuée : il faut d'abord la confirmation explicite de l'utilisateur. Explique-lui que cette action efface définitivement son compte, ses réglages et son historique, et demande-lui de confirmer.\"\n    }\n  }];\n}\n\nreturn [{ json: { ok: true, user_id, session_id } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "21601de1-cebc-465e-b233-011dea46f773",
+      "name": "TOOL - Check Confirm"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "13006cab-29a9-4b6f-b37f-061abee13377",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        448,
+        0
+      ],
+      "id": "8e1aa1ce-13d6-4bad-b30d-b481ca3ee108",
+      "name": "TOOL - Is Confirmed?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH target AS (SELECT id, email FROM users WHERE id = $1),\n   user_sessions AS (SELECT session_id FROM sessions WHERE user_id = $1),\n   del_history AS (DELETE FROM n8n_chat_histories WHERE session_id IN (SELECT session_id FROM user_sessions) OR session_id = $2),\n   del_otp AS (DELETE FROM otp WHERE email IN (SELECT email FROM target)),\n   del_flow AS (DELETE FROM auth_flow WHERE email IN (SELECT email FROM target) OR session_id IN (SELECT session_id FROM user_sessions))\n   DELETE FROM users WHERE id IN (SELECT id FROM target) RETURNING id;",
+        "options": {
+          "queryReplacement": "={{ [$json.user_id, $json.session_id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        672,
+        -96
+      ],
+      "id": "7eeffa9e-ccfe-4140-b9ad-1acfe2e5394b",
+      "name": "DB - Delete User Data",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "wXBHLLxHWNT7flPV",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\n\nif (!r.id) {\n  return [{ json: { ok: false, message: \"Aucun compte à supprimer.\" } }];\n}\n\nreturn [{\n  json: {\n    ok: true,\n    message: \"Toutes les données de l'utilisateur ont été supprimées : compte, réglages, sessions, historique de conversation et historique d'envoi. Il est maintenant déconnecté.\"\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        -96
+      ],
+      "id": "5429d78c-87f6-4d14-aa7d-92bcac9ad52e",
+      "name": "TOOL - Delete Reply"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "TOOL - Start": {
+      "main": [
+        [
+          {
+            "node": "TOOL - Check Confirm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TOOL - Check Confirm": {
+      "main": [
+        [
+          {
+            "node": "TOOL - Is Confirmed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TOOL - Is Confirmed?": {
+      "main": [
+        [
+          {
+            "node": "DB - Delete User Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Delete User Data": {
+      "main": [
+        [
+          {
+            "node": "TOOL - Delete Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "80902f09-eea8-4648-be59-da2a07d7074d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e2994b310ac8273141353449df49ac6619c260178049e5d642618a4e7dd49701"
+  },
+  "nodeGroups": [],
+  "id": "vBAHo34nuSjPklE1",
+  "tags": []
+}
