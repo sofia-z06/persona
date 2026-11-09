@@ -5,13 +5,13 @@
       "parameters": {
         "options": {}
       },
-      "id": "adf7eb1c-da23-40c9-af16-e88d1e6ccd51",
+      "id": "560005db-6aec-43a2-88fa-df28acc0ec00",
       "name": "CHAT - Trigger",
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.1,
       "position": [
-        1344,
-        256
+        0,
+        96
       ],
       "webhookId": "persona-chat"
     },
@@ -23,18 +23,18 @@
           "queryReplacement": "={{ $json.sessionId }}"
         }
       },
-      "id": "0eb498ba-796e-4eaf-b3e8-cd54c3b111a4",
+      "id": "2593b1c7-ed3b-4c83-a544-72303adec887",
       "name": "DB - Get Session",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1568,
-        256
+        224,
+        96
       ],
       "alwaysOutputData": true,
       "credentials": {
         "postgres": {
-          "id": "8ePVlrnO8iF8w1rz",
+          "id": "wXBHLLxHWNT7flPV",
           "name": "postgres"
         }
       }
@@ -71,13 +71,13 @@
         },
         "options": {}
       },
-      "id": "68fb2b97-8a52-4c4c-bc3a-4c16cfe7aedf",
+      "id": "89daad29-00e9-4a58-b0a4-4941ef7f1b0f",
       "name": "CHAT - Build Context",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1792,
-        256
+        448,
+        96
       ]
     },
     {
@@ -115,13 +115,13 @@
           "fallbackOutput": "extra"
         }
       },
-      "id": "b3cc17c4-3f66-49a1-8812-dc86e6fadc0f",
+      "id": "9ac28292-6d4f-43ae-bdd7-98de491e4089",
       "name": "CHAT - Route Auth",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        2016,
-        256
+        672,
+        96
       ],
       "notes": "authenticated = true -> Agent. Tout le reste (false, absent, inattendu) -> Auth par défaut."
     },
@@ -129,9 +129,9 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "value": "tnWQU13NpOAZdltB",
+          "value": "XhlUa9XtSauPg50V",
           "mode": "list",
-          "cachedResultUrl": "/workflow/tnWQU13NpOAZdltB",
+          "cachedResultUrl": "/workflow/XhlUa9XtSauPg50V",
           "cachedResultName": "PERSONA - AUTH - Flow"
         },
         "workflowInputs": {
@@ -144,13 +144,13 @@
         },
         "options": {}
       },
-      "id": "484b4a78-4384-40c8-97a2-05190932518d",
+      "id": "4cbfbdbc-a9c1-4355-9c87-a1273f670ae7",
       "name": "AUTH - Run Flow",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        2240,
-        160
+        896,
+        0
       ]
     },
     {
@@ -180,10 +180,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.4,
       "position": [
-        2240,
-        352
+        896,
+        192
       ],
-      "id": "bf0af231-2ee5-43b5-b990-906bd01eacd7",
+      "id": "6d50f7a3-eb6f-4897-b5bd-0e7129ed142a",
       "name": "AGENT - Is Logout?"
     },
     {
@@ -197,15 +197,15 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.8,
       "position": [
-        2592,
-        208
+        1248,
+        48
       ],
-      "id": "1844afdf-d5ea-4abc-bf90-a7029d4ff52b",
+      "id": "fbbdf8e1-0ae0-47e6-8fc8-6f27770d2eae",
       "name": "DB - Delete Session",
       "alwaysOutputData": true,
       "credentials": {
         "postgres": {
-          "id": "8ePVlrnO8iF8w1rz",
+          "id": "wXBHLLxHWNT7flPV",
           "name": "postgres"
         }
       }
@@ -227,10 +227,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        2928,
-        208
+        1584,
+        48
       ],
-      "id": "b324ac3f-9443-4ddd-8892-781677615355",
+      "id": "60522608-3283-48e2-9ccc-173f4e6493fb",
       "name": "AGENT - Logout Reply"
     },
     {
@@ -244,10 +244,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        2528,
-        496
+        1184,
+        336
       ],
-      "id": "d3e4cab4-b5b0-4e5f-ade7-d0715ff89b9f",
+      "id": "98c8350e-cdec-4fb5-925e-e7e4b78d02f6",
       "name": "AGENT - Persona"
     },
     {
@@ -260,14 +260,14 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.2,
       "position": [
-        2480,
-        736
+        1136,
+        576
       ],
-      "id": "65f45dd7-5d8a-414c-b801-ee519f67bace",
+      "id": "372f62f4-a2f0-4f1d-af4c-52bd160ed184",
       "name": "AGENT - Gemini",
       "credentials": {
         "googlePalmApi": {
-          "id": "22o62uayHhrOcGlN",
+          "id": "fHa9QrwVl6Yv5fNj",
           "name": "llm"
         }
       }
@@ -281,14 +281,14 @@
       "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
       "typeVersion": 1.4,
       "position": [
-        2608,
-        736
+        1264,
+        576
       ],
-      "id": "d6d4e6fd-cef8-4e4b-a8ca-3e8c159690ec",
+      "id": "a97e3e1e-5bf6-40d7-b0bf-f1a39eccffda",
       "name": "AGENT - Memory",
       "credentials": {
         "postgres": {
-          "id": "8ePVlrnO8iF8w1rz",
+          "id": "wXBHLLxHWNT7flPV",
           "name": "postgres"
         }
       }
@@ -298,16 +298,14 @@
         "description": "Renvoie le profil de l'utilisateur connecté : email, pseudo, centres d'intérêt, heure et fuseau d'envoi, statut d'abonnement. À utiliser quand l'utilisateur demande ses réglages, son profil ou ses informations. Ne permet pas de consulter un autre utilisateur.",
         "workflowId": {
           "__rl": true,
-          "value": "dcHeIROIpCVYVbY4",
+          "value": "EsAenfmwl5a6aveB",
           "mode": "list",
-          "cachedResultUrl": "/workflow/dcHeIROIpCVYVbY4",
+          "cachedResultUrl": "/workflow/EsAenfmwl5a6aveB",
           "cachedResultName": "PERSONA - TOOL - get_my_profile"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
-          "value": {
-            "user_id": "={{ $('CHAT - Build Context').first().json.user_id }}"
-          },
+          "value": {},
           "matchingColumns": [
             "user_id"
           ],
@@ -319,8 +317,7 @@
               "defaultMatch": false,
               "display": true,
               "canBeUsedToMatch": true,
-              "type": "number",
-              "removed": false
+              "type": "number"
             }
           ],
           "attemptToConvertTypes": false,
@@ -330,11 +327,71 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        2736,
-        736
+        1392,
+        576
       ],
-      "id": "7142dd5c-6119-44b2-b605-e3b72264fb22",
+      "id": "4a33d701-b665-4cfc-a122-31c937e487ff",
       "name": "TOOL - get_my_profile"
+    },
+    {
+      "parameters": {
+        "description": "Règle l'heure à laquelle l'utilisateur connecté reçoit sa newsletter, et son fuseau horaire. À utiliser quand l'utilisateur indique ou modifie son heure d'envoi.",
+        "workflowId": {
+          "__rl": true,
+          "value": "i6TJdNALQ3zIS2mD",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/i6TJdNALQ3zIS2mD",
+          "cachedResultName": "PERSONA - TOOL - set_schedule"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $('CHAT - Build Context').first().json.user_id }}",
+            "send_time": "={{ $fromAI('send_time', \"Heure d'envoi au format HH:MM sur 24 heures, par exemple 08:00 pour 8h du matin ou 18:30 pour 18h30\", 'string') }}",
+            "timezone": "={{ $fromAI('timezone', \"Fuseau horaire IANA, par exemple Europe/Paris. Chaîne vide si l'utilisateur ne précise pas de fuseau\", 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "send_time",
+              "displayName": "send_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "timezone",
+              "displayName": "timezone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        688
+      ],
+      "id": "12ceb5ba-b013-4100-a96c-bc7c0d9b0f1f",
+      "name": "TOOL - set_schedule"
     }
   ],
   "pinData": {},
@@ -451,6 +508,17 @@
           }
         ]
       ]
+    },
+    "TOOL - set_schedule": {
+      "ai_tool": [
+        [
+          {
+            "node": "AGENT - Persona",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -458,12 +526,11 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "58eedb92-9864-46c0-ab0e-1c7a00842d44",
+  "versionId": "a2b5c81a-5d71-4372-be68-17cd8550d12f",
   "meta": {
-    "templateCredsSetupCompleted": true,
     "instanceId": "e2994b310ac8273141353449df49ac6619c260178049e5d642618a4e7dd49701"
   },
   "nodeGroups": [],
-  "id": "Dl6IMah1EHf94q0R",
+  "id": "P862mfwHGLzL2yP3",
   "tags": []
 }
