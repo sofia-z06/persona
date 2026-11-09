@@ -1,0 +1,111 @@
+{
+  "name": "PERSONA - TOOL - set_interests",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "user_id",
+              "type": "number"
+            },
+            {
+              "name": "interests"
+            }
+          ]
+        }
+      },
+      "id": "si-start",
+      "name": "TOOL - Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// [Tool] set_interests : nettoyer + valider la liste (issue #13)\n// Liste commune : docs/tags.md (= tags des articles)\nconst ALLOWED = ['espace', 'science', 'ia', 'tech', 'international', 'politique', 'economie', 'sante', 'environnement'];\nconst SYNONYMS = {\n  'intelligence artificielle': 'ia', 'ai': 'ia', 'i.a.': 'ia',\n  'technologie': 'tech', 'technologies': 'tech', 'techno': 'tech', 'informatique': 'tech',\n  'astronomie': 'espace', 'spatial': 'espace',\n  'sciences': 'science',\n  'monde': 'international', 'geopolitique': 'international',\n  'eco': 'economie', 'finance': 'economie',\n  'climat': 'environnement', 'ecologie': 'environnement',\n  'medecine': 'sante',\n};\nconst MAX = 10;\n\nconst input = $input.first().json;\nconst userId = input.user_id;\n\nfunction clean(s) {\n  return String(s || '').toLowerCase()\n    .normalize('NFD').replace(/[̀-ͯ]/g, '')\n    .trim();\n}\n\n// Accepte un tableau, un JSON '[\"a\",\"b\"]' ou une chaîne 'a, b'\nlet raw = input.interests;\nif (typeof raw === 'string') {\n  const t = raw.trim();\n  if (t.startsWith('[')) { try { raw = JSON.parse(t); } catch (e) { raw = t; } }\n}\nconst list = Array.isArray(raw) ? raw : String(raw || '').split(/[,;\\n]| et /);\n\nconst accepted = [];\nconst rejected = [];\nfor (const item of list) {\n  const c = clean(item);\n  if (!c) continue;\n  const tag = ALLOWED.includes(c) ? c : SYNONYMS[c];\n  if (tag) { if (!accepted.includes(tag)) accepted.push(tag); }\n  else if (!rejected.includes(String(item).trim())) rejected.push(String(item).trim());\n}\n\nlet ok = true;\nlet message = '';\nif (!userId) {\n  ok = false;\n  message = \"Utilisateur non identifié : impossible de modifier les centres d'intérêt.\";\n} else if (!accepted.length && rejected.length) {\n  ok = false;\n  message = `Aucun centre d'intérêt valide. Non disponible(s) : ${rejected.join(', ')}. Choix possibles : ${ALLOWED.join(', ')}.`;\n} else if (accepted.length > MAX) {\n  ok = false;\n  message = `Trop de centres d'intérêt (${accepted.length}), ${MAX} maximum.`;\n}\n\nreturn [{ json: { ok, message, user_id: userId, interests: accepted, rejected } }];\n"
+      },
+      "id": "si-validate",
+      "name": "TOOL - Validate Interests",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE users\nSET interests = ARRAY(SELECT jsonb_array_elements_text($2::jsonb))\nWHERE id = $1 AND $3::boolean\nRETURNING interests;",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id, JSON.stringify($json.interests), $json.ok ] }}"
+        }
+      },
+      "id": "si-db",
+      "name": "DB - Set Interests",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        480,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// [Tool] set_interests : réponse { ok, message, data }\nconst ALLOWED = ['espace', 'science', 'ia', 'tech', 'international', 'politique', 'economie', 'sante', 'environnement'];\nconst v = $('TOOL - Validate Interests').first().json;\nif (!v.ok) return [{ json: { ok: false, message: v.message } }];\n\nconst row = $input.first().json;\nif (!row || !Array.isArray(row.interests)) {\n  return [{ json: { ok: false, message: \"La mise à jour a échoué : centres d'intérêt non modifiés.\" } }];\n}\n\nlet message = row.interests.length\n  ? `Centres d'intérêt enregistrés : ${row.interests.join(', ')}.`\n  : \"Centres d'intérêt vidés.\";\nif (v.rejected.length) {\n  message += ` Non disponible(s), donc ignoré(s) : ${v.rejected.join(', ')}. Choix possibles : ${ALLOWED.join(', ')}.`;\n}\nreturn [{ json: { ok: true, message, data: { interests: row.interests, rejected: v.rejected } } }];\n"
+      },
+      "id": "si-format",
+      "name": "TOOL - Format Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TOOL - Start": {
+      "main": [
+        [
+          {
+            "node": "TOOL - Validate Interests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TOOL - Validate Interests": {
+      "main": [
+        [
+          {
+            "node": "DB - Set Interests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Set Interests": {
+      "main": [
+        [
+          {
+            "node": "TOOL - Format Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
