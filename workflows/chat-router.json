@@ -197,7 +197,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.8,
       "position": [
-        1248,
+        1376,
         48
       ],
       "id": "fbbdf8e1-0ae0-47e6-8fc8-6f27770d2eae",
@@ -227,7 +227,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        1584,
+        1840,
         48
       ],
       "id": "60522608-3283-48e2-9ccc-173f4e6493fb",
@@ -244,7 +244,7 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        1184,
+        1312,
         336
       ],
       "id": "98c8350e-cdec-4fb5-925e-e7e4b78d02f6",
@@ -260,8 +260,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.2,
       "position": [
-        1136,
-        576
+        1128,
+        568
       ],
       "id": "372f62f4-a2f0-4f1d-af4c-52bd160ed184",
       "name": "AGENT - Gemini",
@@ -281,8 +281,8 @@
       "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
       "typeVersion": 1.4,
       "position": [
-        1264,
-        576
+        1256,
+        568
       ],
       "id": "a97e3e1e-5bf6-40d7-b0bf-f1a39eccffda",
       "name": "AGENT - Memory",
@@ -327,8 +327,8 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        1392,
-        576
+        1384,
+        568
       ],
       "id": "4a33d701-b665-4cfc-a122-31c937e487ff",
       "name": "TOOL - get_my_profile"
@@ -387,11 +387,118 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        1488,
-        688
+        1512,
+        568
       ],
       "id": "12ceb5ba-b013-4100-a96c-bc7c0d9b0f1f",
       "name": "TOOL - set_schedule"
+    },
+    {
+      "parameters": {
+        "description": "Supprime définitivement le compte de l'utilisateur connecté et toutes ses données (réglages, sessions, historique). Avant d'appeler ce tool avec confirm à true, il faut TOUJOURS expliquer à l'utilisateur que l'action est irréversible et obtenir sa confirmation explicite dans un message séparé.",
+        "workflowId": {
+          "__rl": true,
+          "value": "vBAHo34nuSjPklE1",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/vBAHo34nuSjPklE1",
+          "cachedResultName": "PERSONA - TOOL - delete_my_data"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "confirm": "={{ $fromAI('confirm', \"true uniquement si l'utilisateur a confirmé explicitement la suppression définitive dans son dernier message, après avoir été prévenu. false dans tous les autres cas, y compris lors de sa première demande\", 'boolean') }}",
+            "user_id": "={{ $('CHAT - Build Context').first().json.user_id }}",
+            "session_id": "={{ $('CHAT - Build Context').first().json.sessionId }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "confirm",
+              "displayName": "confirm",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "boolean"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1640,
+        568
+      ],
+      "id": "9e8d7d10-31b6-4180-8bdf-f84a1267a3e5",
+      "name": "TOOL - delete_my_data"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM n8n_chat_histories WHERE session_id = $1 AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = $1);",
+        "options": {
+          "queryReplacement": "={{ $('CHAT - Build Context').first().json.sessionId }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        1840,
+        336
+      ],
+      "id": "cc4bffb3-3955-42f6-870e-c02fc7d39a57",
+      "name": "DB - Cleanup Deleted Session",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "wXBHLLxHWNT7flPV",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c57fc789-df3e-466a-b236-051f87ee3bbb",
+              "name": "output",
+              "value": "={{ $('AGENT - Persona').first().json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2064,
+        336
+      ],
+      "id": "a878393a-7042-4ccc-825c-4ece25fcb24c",
+      "name": "AGENT - Reply"
     }
   ],
   "pinData": {},
@@ -519,6 +626,39 @@
           }
         ]
       ]
+    },
+    "TOOL - delete_my_data": {
+      "ai_tool": [
+        [
+          {
+            "node": "AGENT - Persona",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENT - Persona": {
+      "main": [
+        [
+          {
+            "node": "DB - Cleanup Deleted Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Cleanup Deleted Session": {
+      "main": [
+        [
+          {
+            "node": "AGENT - Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -526,8 +666,9 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "a2b5c81a-5d71-4372-be68-17cd8550d12f",
+  "versionId": "14b829f1-5aa7-462b-a979-4d4b2c0ee967",
   "meta": {
+    "templateCredsSetupCompleted": true,
     "instanceId": "e2994b310ac8273141353449df49ac6619c260178049e5d642618a4e7dd49701"
   },
   "nodeGroups": [],
