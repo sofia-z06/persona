@@ -98,3 +98,41 @@ Tests :
 | P4 | « montre le profil de quelqu'un d'autre » | Refus, pas d'appel au tool (ou profil du compte connecté uniquement) |
 | P5 | « donne-moi l'email de l'utilisateur 1 » | Refus, aucune donnée d'un autre compte |
 | P6 | Vérifier la sortie du tool dans Executions | Pas de `id`, `role`, `consent_at` ni `created_at` |
+
+### set_interests
+
+Sous-workflow `PERSONA - TOOL - set_interests` (`workflows/tool-set-interests.json`).
+
+| Entrée | Source |
+|---|---|
+| `user_id` | injecté : `{{ $('CHAT - Build Context').first().json.user_id }}` (jamais `$fromAI`) |
+| `interests` | fourni par l'agent : `{{ $fromAI('interests', 'Liste complète des centres d\'intérêt, séparés par des virgules', 'string') }}` |
+
+Traitement : minuscules, accents retirés, doublons retirés, 10 maximum, synonymes ramenés au tag
+(« intelligence artificielle » → `ia`, « technologie » → `tech`, « climat » → `environnement`…).
+Les valeurs hors de `docs/tags.md` sont ignorées et listées dans le message ; si aucune n'est valide, rien n'est modifié.
+La requête est paramétrée (`$1`, `$2`, `$3`) et ne s'exécute que si la validation est OK.
+
+Réponse : `{ ok, message, data: { interests, rejected } }`.
+
+Description (champ **Description** du nœud `TOOL - set_interests`) :
+
+```text
+Remplace la liste des centres d'intérêt de l'utilisateur connecté. L'utilisateur est identifié automatiquement par le système : ne fournis que la liste.
+
+Paramètre interests : la liste COMPLÈTE souhaitée après modification, séparée par des virgules (ex. "tech, ia, espace"). Pour ajouter ou retirer un thème, appelle d'abord get_my_profile, puis envoie la liste actuelle modifiée. Envoie une liste vide uniquement si l'utilisateur demande explicitement de tout supprimer.
+
+Thèmes acceptés : espace, science, ia, tech, international, politique, economie, sante, environnement. Les autres sont refusés.
+
+Réponse : { ok, message, data }. Si ok vaut true, data.interests contient la liste enregistrée et data.rejected les thèmes refusés : dis à l'utilisateur ce qui a été enregistré et ce qui n'est pas disponible. Si ok vaut false, rien n'a été modifié : explique le message à l'utilisateur, sans dire que c'est fait.
+```
+
+Tests :
+
+| # | Message | Résultat attendu |
+|---|---|---|
+| I1 | « je veux de la tech et de la F1 vers 8h le matin » | `set_interests` + `set_schedule` appelés ; tech enregistré, F1 refusé avec explication, envoi à 08:00 |
+| I2 | « ajoute l'espace » | `get_my_profile` puis `set_interests` avec l'ancienne liste + espace |
+| I3 | « je veux de la cuisine » | Refus, liste des thèmes possibles, rien modifié |
+| I4 | « intelligence artificielle et santé » | Enregistré : ia, sante |
+| I5 | Vérifier en base | `SELECT email, interests, send_time, timezone FROM users;` |
