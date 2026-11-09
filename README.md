@@ -32,7 +32,7 @@ Ce README explique comment lancer le projet **sur votre propre machine, avec vos
 | Git | toutes | `git --version` |
 | OpenSSL (pour générer des clés) | toutes | `openssl version` |
 
-Aucune autre installation n'est nécessaire : n8n et sa base de données tournent dans des conteneurs.
+Aucune autre installation n'est nécessaire : n8n, sa base de données et le serveur mail de développement tournent dans des conteneurs.
 
 ---
 
@@ -40,13 +40,15 @@ Aucune autre installation n'est nécessaire : n8n et sa base de données tournen
 
 ```
 .
-├── docker-compose.yml   # services n8n + PostgreSQL
+├── docker-compose.yml   # services n8n, PostgreSQL et Mailpit
 ├── .env.example         # modèle des variables d'environnement (aucun vrai secret)
 ├── .gitignore           # ignore .env, volumes, exports bruts
 ├── README.md
+├── db/
+│   └── init.sql         # schéma de la base, exécuté au premier lancement de PostgreSQL
 ├── workflows/           # workflows n8n exportés (*.json), nettoyés des identifiants
-├── docs/                # architecture, notes de sécurité, notes RGPD
-└── tests/               # scénarios de test (auth, planification, entrées malveillantes…)
+├── docs/                # conventions, base de données, authentification, RGPD
+└── tests/               # scénarios de test (auth, routage du chat, base de données…)
 ```
 
 ---
@@ -66,15 +68,26 @@ openssl rand -hex 32
 
 # 4. Remplir les autres valeurs du .env (voir section 4)
 
-# 5. Lancer n8n et sa base de données
+# 5. Lancer les services
 docker compose up -d
 
 # 6. Vérifier que les conteneurs tournent
 docker compose ps
 ```
 
-Ouvrez ensuite **http://localhost:5678**.
-Au premier lancement, n8n demande de créer un **compte propriétaire** (owner : email + mot de passe). Ce compte est local à votre instance.
+`docker compose up -d` lance trois services :
+
+| Service | Adresse | Rôle |
+|---|---|---|
+| n8n | http://localhost:5678 | Éditeur et exécution des workflows |
+| PostgreSQL | `localhost:5432` | Base de n8n et des données de Persona |
+| Mailpit | http://localhost:8025 | Faux serveur mail de développement : les emails envoyés (codes de connexion, newsletters) s'affichent ici, rien n'est réellement envoyé |
+
+Au premier lancement, PostgreSQL exécute `db/init.sql` et crée les 6 tables de Persona (`users`, `sessions`, `otp`, `auth_flow`, `articles`, `sent_articles`). Le détail est dans [`docs/database.md`](docs/database.md).
+
+Ouvrez ensuite **http://localhost:5678**. Au premier lancement, n8n met une à deux minutes à préparer sa base : suivez l'avancement avec `docker compose logs -f n8n` et attendez le message `Editor is now accessible`.
+
+n8n demande alors de créer un **compte propriétaire** (owner : email + mot de passe). Ce compte est local à votre instance.
 
 > ⚠️ Ne commitez jamais votre fichier `.env`. Il est déjà listé dans le `.gitignore`.
 
@@ -82,23 +95,24 @@ Au premier lancement, n8n demande de créer un **compte propriétaire** (owner :
 
 ## 4. Variables d'environnement
 
-Toutes les variables se trouvent dans `.env` (copié depuis `.env.example`).
+Les variables à renseigner se trouvent dans `.env` (copié depuis `.env.example`).
 
 | Variable | Exemple | Description |
 |---|---|---|
 | `POSTGRES_USER` | `persona` | Utilisateur PostgreSQL |
 | `POSTGRES_PASSWORD` | *(à choisir)* | Mot de passe PostgreSQL |
-| `POSTGRES_DB` | `n8n` | Nom de la base |
+| `POSTGRES_DB` | `persona` | Nom de la base, partagée par n8n et par les tables de Persona |
 | `N8N_ENCRYPTION_KEY` | *(sortie de `openssl rand -hex 32`)* | Clé utilisée par n8n pour chiffrer les identifiants enregistrés. **Ne la changez pas après le premier lancement**, sinon les identifiants ne pourront plus être déchiffrés. |
-| `GENERIC_TIMEZONE` | `Europe/Paris` | Fuseau horaire utilisé par les nœuds de planification. Doit correspondre aux créneaux choisis par les utilisateurs. |
-| `TZ` | `Europe/Paris` | Fuseau horaire système du conteneur (identique à `GENERIC_TIMEZONE`). |
-| `N8N_HOST` | `localhost` | Hôte sur lequel n8n est servi |
-| `N8N_PORT` | `5678` | Port d'écoute de n8n |
-| `N8N_PROTOCOL` | `http` | `http` en local |
-| `WEBHOOK_URL` | `http://localhost:5678/` | URL de base publique utilisée pour le chat et les webhooks |
-| `N8N_DIAGNOSTICS_ENABLED` | `false` | Désactive la télémétrie envoyée à n8n |
+| `N8N_PORT` | `5678` | Port de n8n. Pas encore utilisé par `docker-compose.yml`, qui expose le port 5678 directement |
+| `WEBHOOK_URL` | `http://localhost:5678/` | URL publique des webhooks et du chat. Pas encore utilisée par `docker-compose.yml`, à renseigner si n8n est exposé publiquement |
 
-<!-- TODO : garder ce tableau synchronisé avec .env.example -->
+Les réglages suivants sont fixés directement dans `docker-compose.yml` et n'ont pas besoin d'être modifiés :
+
+| Réglage | Valeur | Description |
+|---|---|---|
+| `GENERIC_TIMEZONE` / `TZ` | `Europe/Paris` | Fuseau horaire des nœuds de planification et du conteneur |
+| `N8N_DIAGNOSTICS_ENABLED` | `false` | Désactive la télémétrie envoyée à n8n |
+| `NODE_FUNCTION_ALLOW_BUILTIN` | `crypto` | Autorise le module `crypto` dans les nœuds Code (génération et hash des codes de connexion) |
 
 ---
 
@@ -106,39 +120,53 @@ Toutes les variables se trouvent dans `.env` (copié depuis `.env.example`).
 
 Tous les workflows sont dans le dossier `workflows/`.
 
-### Option A : depuis l'interface n8n
+| Fichier | Workflow | Rôle |
+|---|---|---|
+| `workflows/chat-router.json` | `PERSONA - Chat - Router` | Point d'entrée du chat : vérifie la session, gère la déconnexion, envoie vers l'agent ou vers l'authentification |
+| `workflows/auth-flow.json` | `PERSONA - AUTH - Flow` | Authentification complète : email, code de connexion, consentement RGPD, création du compte et de la session |
+| `workflows/tool-get-my-profile.json` | `PERSONA - TOOL - get_my_profile` | Tool de l'agent : renvoie le profil de l'utilisateur connecté |
+
+### Importer un fichier
 
 1. Ouvrir http://localhost:5678
-2. **Workflows** → **Add workflow** (ou le bouton `+`)
-3. Cliquer sur le menu **⋯** (en haut à droite) → **Import from File…**
-4. Sélectionner un fichier `.json` du dossier `workflows/`
-5. Enregistrer, puis recommencer pour chaque fichier
+2. **Create workflow** (ou le bouton `+`)
+3. Menu **⋯** (en haut à droite) → **Import from File…**
+4. Sélectionner le fichier `.json`, puis enregistrer (`Ctrl+S` / `Cmd+S`)
 
-### Option B : en ligne de commande (tout d'un coup)
+### Ordre d'import
 
-```bash
-docker compose cp workflows/. n8n:/tmp/workflows
-docker compose exec n8n n8n import:workflow --separate --input=/tmp/workflows
-```
+Le router appelle les autres workflows : importez-le **en dernier**.
 
-Après l'import, ouvrez chaque workflow et **associez vos propres identifiants** aux nœuds qui en ont besoin (les nœuds sans identifiant affichent une icône d'avertissement). Voir section 7.
+1. `tool-get-my-profile.json`, puis cliquez sur **Publish** : un sous-workflow utilisé comme tool doit être publié, sinon l'agent affiche « Workflow is not active and cannot be executed »
+2. `auth-flow.json`
+3. `chat-router.json`
 
-Enfin, **activez** les workflows (bouton *Active* en haut à droite) pour que les triggers de chat et de planification fonctionnent.
+### Refaire les liens entre workflows
 
-<!-- TODO : lister les workflows et leur rôle une fois créés, ex.
-| Fichier | Rôle |
+L'identifiant d'un workflow change d'une instance n8n à l'autre. Après l'import, ouvrez `PERSONA - Chat - Router` et resélectionnez les workflows appelés (champ **Workflow** → **From list**) :
+
+| Nœud | Workflow à sélectionner |
 |---|---|
-| `workflows/persona-chat.json` | Point d'entrée principal (Chat Trigger, authentification, paramètres utilisateur) |
-| `workflows/persona-newsletter.json` | Récupération, filtrage et envoi programmés |
--->
+| `AUTH - Run Flow` | `PERSONA - AUTH - Flow` |
+| `TOOL - get_my_profile` | `PERSONA - TOOL - get_my_profile` |
+
+Sans cette étape, le chat répond « Workflow does not exist ».
+
+### Vérifier les identifiants
+
+Dans les trois workflows, vérifiez que chaque nœud utilise le bon identifiant (voir section 7) : `postgres` pour les nœuds Postgres et `AGENT - Memory`, `smtp` pour `AUTH - Send OTP`, `llm` pour `AGENT - Gemini`. Un nœud sans identifiant affiche un triangle d'avertissement.
+
+Après chaque modification d'un tool, cliquez à nouveau sur **Publish** pour que l'agent utilise la nouvelle version.
+
+Le fonctionnement détaillé de chaque nœud est décrit dans [`docs/auth.md`](docs/auth.md).
 
 ---
 
 ## 6. Community nodes
 
-<!-- TODO : lister les community nodes utilisés, ou indiquer "aucun". -->
+Aucun community node n'est utilisé pour l'instant : tous les nœuds font partie de n8n.
 
-Pour installer un community node :
+Si vous en ajoutez un, pour l'installer :
 
 1. Se connecter avec le compte **propriétaire**
 2. **Settings** → **Community Nodes** → **Install**
@@ -152,55 +180,72 @@ Aucun identifiant n'est fourni dans ce repo. Vous devez créer les vôtres dans 
 
 | Nom | Type n8n | Utilisé par | Où l'obtenir |
 |---|---|---|---|
-| `llm` | Google Gemini (PaLM) API | Nœud AI Agent | [Google AI Studio](https://aistudio.google.com) → **API keys** → **Create API key** (offre gratuite, sans carte bancaire) |
+| `llm` | Google Gemini (PaLM) API | Nœud `AGENT - Gemini` | [Google AI Studio](https://aistudio.google.com) → **API keys** → **Create API key** (offre gratuite, sans carte bancaire) |
 | `smtp` | SMTP | Nœud Send Email | En développement : Mailpit, déjà lancé par `docker compose` (host `mailpit`, port `1025`, sans utilisateur ni mot de passe, SSL/TLS désactivé). Les emails envoyés sont visibles sur http://localhost:8025 |
 | `news-api` | Header Auth / API du fournisseur | Nœuds HTTP Request | Dashboard du fournisseur |
 | `postgres` | Postgres | Nœuds Postgres | Valeurs de votre `.env` (hôte : `postgres`, port `5432`, SSL désactivé) |
 
 Pour `llm`, dans **Allowed HTTP Request Domains**, choisir **Specific Domains** et indiquer `generativelanguage.googleapis.com` : la clé ne peut alors être envoyée à aucun autre domaine.
 
+Le modèle utilisé est **Gemini 3.5 Flash Lite** : sur l'offre gratuite, il autorise 15 requêtes par minute et 500 par jour, contre 20 par jour pour les modèles Flash classiques.
+
 ---
 
 ## 8. Utiliser Persona via le chatbot
 
-<!-- TODO : décrire le parcours dans le chat une fois implémenté :
-- comment ouvrir le chat (URL du Chat Trigger / bouton "Open chat")
-- inscription / connexion
-- renseigner email, sujets, créneau
-- se désabonner / supprimer ses données (RGPD)
-- exemples de messages
--->
+Ouvrez le workflow `PERSONA - Chat - Router` et cliquez sur **Open chat** en bas de l'éditeur. Le bouton **Reset** du chat démarre une nouvelle conversation, comme un nouvel utilisateur.
+
+### S'inscrire ou se connecter
+
+1. Envoyez n'importe quel message : Persona se présente et demande votre adresse email
+2. Envoyez votre email : un code à 6 chiffres vous est envoyé (visible sur http://localhost:8025 en développement)
+3. Envoyez le code. Il est valable 10 minutes, avec 3 essais maximum
+4. **Première connexion** : Persona explique quelles données sont enregistrées, pourquoi et combien de temps, puis demande votre accord. Répondez `oui` pour créer votre compte, ou `non` pour que rien ne soit conservé
+5. Vous êtes connecté(e) pour 24h
+
+### Discuter avec l'agent
+
+Une fois connecté(e), vos messages sont traités par l'agent Persona, qui garde le contexte de la conversation. Exemples :
+
+- `c'est quoi mes réglages ?` : affiche votre profil (email, centres d'intérêt, heure et fuseau d'envoi, statut)
+- `quel est mon email ?`
+
+### Se déconnecter
+
+Envoyez `déconnecte-moi` (ou `déconnexion`, `logout`).
+
+<!-- TODO (M3) : renseigner ses centres d'intérêt et son créneau, se désabonner, supprimer ses données -->
 
 ---
 
 ## 9. Tester rapidement un envoi programmé
 
-<!-- TODO : procédure pas à pas, ex.
+<!-- TODO (M5) : procédure pas à pas, ex.
 1. Dans le chat, régler son créneau à quelques minutes de l'heure actuelle
 2. Vérifier le fuseau horaire (GENERIC_TIMEZONE)
-3. Attendre, puis vérifier sa boîte mail et l'historique d'exécution (onglet Executions)
+3. Attendre, puis vérifier Mailpit et l'historique d'exécution (onglet Executions)
 -->
 
 ---
 
 ## 10. Exporter les workflows (contributeurs)
 
-Pour versionner un workflow après modification :
+Pour versionner un workflow après modification, depuis l'interface : **⋯** → **Export JSON**.
+
+Ou en ligne de commande :
 
 ```bash
 docker compose exec n8n n8n export:workflow --all --separate --output=/tmp/export
 docker compose cp n8n:/tmp/export/. workflows/
 ```
 
-Ou depuis l'interface : **⋯** → **Download**.
-
 **Avant de commiter**, vérifiez chaque fichier exporté :
 
 - aucune clé d'API, token ou mot de passe dans les headers ou paramètres des nœuds HTTP Request
-- les **noms** des identifiants ne révèlent rien de personnel (utilisez des noms génériques comme `LLM API`, `SMTP`)
-- aucune vraie donnée utilisateur dans les données épinglées (`pinData`)
+- les nœuds utilisent uniquement les identifiants de la section 7 (`postgres`, `llm`, `smtp`, `news-api`), dont les noms ne révèlent rien de personnel
+- aucune vraie donnée utilisateur dans les données épinglées (`pinData` doit être vide)
 
-Renommez les fichiers exportés avec des noms explicites (ex. `persona-chat.json`) plutôt que des IDs.
+Renommez les fichiers exportés selon les conventions de [`docs/conventions.md`](docs/conventions.md) (ex. `chat-router.json`, `auth-flow.json`) et remplacez l'ancien fichier, sans créer de doublon.
 
 ---
 
@@ -220,7 +265,15 @@ docker compose down -v
 
 | Problème | Solution |
 |---|---|
-| `port is already allocated` sur 5678 | Un autre processus utilise le port : l'arrêter, ou changer `N8N_PORT` et le mapping de port |
+| `port is already allocated` sur 5678 | Un autre processus utilise le port : l'arrêter, ou changer le mapping de port du service `n8n` |
+| `port is already allocated` sur 5432 | Un autre PostgreSQL tourne déjà sur la machine (fréquent sous Linux) : l'arrêter avec `sudo systemctl stop postgresql`, ou changer le mapping de port du service `postgres` |
+| `getaddrinfo ENOTFOUND postgres` dans les logs de n8n | Un lancement précédent a échoué et laissé les conteneurs dans un état incohérent : `docker compose down` puis `docker compose up -d` (sans `-v`, les données sont conservées) |
+| La page http://localhost:5678 ne s'ouvre pas | n8n est peut-être encore en train de démarrer : `docker compose logs -f n8n` et attendre `Editor is now accessible`. Sous WSL, essayer aussi http://127.0.0.1:5678 |
 | *Credentials could not be decrypted* | `N8N_ENCRYPTION_KEY` a changé depuis le premier lancement. Remettre l'ancienne clé, ou réinitialiser avec `docker compose down -v` |
-| Envoi programmé à la mauvaise heure | Vérifier `GENERIC_TIMEZONE` et `TZ` dans `.env`, puis relancer `docker compose up -d` |
+| Les tables de Persona n'existent pas | `db/init.sql` n'est exécuté que sur une base vide. Si le volume existait avant, le rejouer à la main : `docker compose exec -T postgres psql -U persona -d persona < db/init.sql` (voir [`docs/database.md`](docs/database.md)) |
+| Aucun email reçu | Vérifier que Mailpit tourne (`docker compose ps`) et que l'identifiant `smtp` pointe vers l'hôte `mailpit`, port `1025` |
+| « Workflow does not exist » sur `AUTH - Run Flow` ou un tool | Resélectionner le workflow appelé dans le nœud, voir section 5 |
+| « Workflow is not active and cannot be executed » | Le sous-workflow du tool n'est pas publié : l'ouvrir et cliquer sur **Publish** |
+| L'agent ne répond pas ou charge sans fin | Limite de requêtes Gemini atteinte. Vérifier sur Google AI Studio (**Usage**) et utiliser Gemini 3.5 Flash Lite (voir section 7) |
+| Envoi programmé à la mauvaise heure | Vérifier `GENERIC_TIMEZONE` et `TZ` dans `docker-compose.yml`, puis relancer `docker compose up -d` |
 | n8n ne démarre pas | `docker compose logs n8n` (et `docker compose logs postgres`) |
