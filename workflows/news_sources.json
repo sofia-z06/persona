@@ -306,6 +306,47 @@
           "name": "postgres"
         }
       }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        544,
+        -240
+      ],
+      "id": "11e80cc9-ef16-4ab2-be0b-761fcdc7de79",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM articles\nWHERE COALESCE(published_at, fetched_at) < NOW() - INTERVAL '7 days';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        1632,
+        288
+      ],
+      "id": "dd244376-2123-4154-b1eb-5583ba96752c",
+      "name": "DB - Purge Old Articles",
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "koDcmjZ6QyS7MmwZ",
+          "name": "postgres"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -483,14 +524,56 @@
           }
         ]
       ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "RSS espace",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS science",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS ia",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS international",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "API news",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Save Articles": {
+      "main": [
+        [
+          {
+            "node": "DB - Purge Old Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "8f0d13b3-af82-4713-ae75-9599518da7d5",
+  "versionId": "1e207543-ab6f-4d80-880e-71f7885b457b",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "77651b12194904de94a26f6ca97e0922f92fab4e56e206db979ea3ce4e89b83f"
