@@ -1,0 +1,176 @@
+{
+  "name": "PERSONA - TOOL - set_schedule",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "user_id",
+              "type": "number"
+            },
+            {
+              "name": "send_time"
+            },
+            {
+              "name": "timezone"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        -48
+      ],
+      "id": "42e7ae64-52d6-40a6-9ed4-cfca7cfcf9b2",
+      "name": "TOOL - Start",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const { user_id, send_time, timezone } = $input.first().json;\n\nconst time = String(send_time ?? '').trim();\nconst match = time.match(/^([01]?\\d|2[0-3]):([0-5]\\d)$/);\nif (!match) {\n  return [{ json: { ok: false, message: \"Heure invalide : elle doit être au format HH:MM, entre 00:00 et 23:59 (par exemple 08:00).\" } }];\n}\nconst sendTime = `${match[1].padStart(2, '0')}:${match[2]}`;\n\nconst tz = String(timezone ?? '').trim() || 'Europe/Paris';\ntry {\n  new Intl.DateTimeFormat('fr-FR', { timeZone: tz });\n} catch (e) {\n  return [{ json: { ok: false, message: `Fuseau horaire inconnu : « ${tz} ». Utilise un nom comme Europe/Paris ou America/New_York.` } }];\n}\n\nreturn [{ json: { ok: true, user_id, send_time: sendTime, timezone: tz } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        -48
+      ],
+      "id": "131fff54-de0a-4788-a314-1424137bc546",
+      "name": "TOOL - Validate Schedule"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "014214f4-2324-461e-a15d-82b16cec0dc1",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        448,
+        -48
+      ],
+      "id": "1c45a191-a5ae-4302-bdd9-450c61a333ed",
+      "name": "TOOL - Is Valid?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE users SET send_time = $2, timezone = $3 WHERE id = $1 RETURNING send_time, timezone;",
+        "options": {
+          "queryReplacement": "={{ [$json.user_id, $json.send_time, $json.timezone] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        672,
+        -48
+      ],
+      "id": "806f9e0a-72b3-4197-8f0b-97624c475a67",
+      "name": "DB - Update Schedule",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "wXBHLLxHWNT7flPV",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "   const r = $input.first().json;\n\n   if (!r.send_time) {\n     return [{ json: { ok: false, message: \"Profil introuvable.\" } }];\n   }\n\n   const sendTime = String(r.send_time).slice(0, 5);\n   return [{\n     json: {\n       ok: true,\n       message: `Heure d'envoi réglée à ${sendTime} (${r.timezone}).`,\n       data: { send_time: sendTime, timezone: r.timezone }\n     }\n   }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        -48
+      ],
+      "id": "b039a3fd-9a79-42c1-9d68-28a7728a2ea0",
+      "name": "TOOL - Schedule Reply"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "TOOL - Start": {
+      "main": [
+        [
+          {
+            "node": "TOOL - Validate Schedule",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TOOL - Validate Schedule": {
+      "main": [
+        [
+          {
+            "node": "TOOL - Is Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TOOL - Is Valid?": {
+      "main": [
+        [
+          {
+            "node": "DB - Update Schedule",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Update Schedule": {
+      "main": [
+        [
+          {
+            "node": "TOOL - Schedule Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8d30a0f7-994e-49a3-af07-a6cf88a29b1a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e2994b310ac8273141353449df49ac6619c260178049e5d642618a4e7dd49701"
+  },
+  "nodeGroups": [],
+  "id": "i6TJdNALQ3zIS2mD",
+  "tags": []
+}
