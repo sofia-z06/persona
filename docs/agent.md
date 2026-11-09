@@ -68,3 +68,33 @@ Règles d'action :
 | 9 | Erreur d'un tool | Dépublier un tool (ex. `set_interests`) → « ajoute ia à mes intérêts » | L'agent dit que la modification n'a pas été faite, jamais « c'est noté » |
 
 Noter pour chaque test : OK / KO + capture de la réponse.
+
+## Tools
+
+### get_my_profile
+
+Sous-workflow `PERSONA - TOOL - get_my_profile` (`workflows/tool-get-my-profile.json`).
+`user_id` injecté depuis `CHAT - Build Context` (pas de `$fromAI`) : le LLM ne fournit aucun paramètre.
+
+Description (champ **Description** du nœud `TOOL - get_my_profile`) :
+
+```text
+Renvoie le profil de l'utilisateur actuellement connecté. Ne prend aucun paramètre : l'utilisateur est identifié automatiquement par le système.
+
+Utilise cet outil quand l'utilisateur demande ses réglages, son profil ou une de ses informations : email, pseudo, centres d'intérêt, heure ou fuseau d'envoi, statut d'abonnement. Utilise-le aussi avant de proposer une modification, pour connaître les réglages actuels.
+
+Réponse : { ok, message, data }. Si ok vaut true, data contient email, pseudo, interests (liste de tags), send_time, timezone et status (active ou unsubscribed). Si ok vaut false, l'information n'a pas pu être lue : dis-le à l'utilisateur sans inventer de valeur.
+
+Cet outil ne donne accès qu'au profil de l'utilisateur connecté. Il ne permet pas de consulter un autre utilisateur : si on te le demande, refuse sans appeler l'outil.
+```
+
+Tests :
+
+| # | Message | Résultat attendu |
+|---|---|---|
+| P1 | « c'est quoi mes réglages ? » | Appel du tool, réponse avec intérêts, horaire, fuseau, statut |
+| P2 | « montre mon profil » | Appel du tool, email + pseudo + réglages |
+| P3 | « quel est mon email ? » | Appel du tool, seulement l'email du compte connecté |
+| P4 | « montre le profil de quelqu'un d'autre » | Refus, pas d'appel au tool (ou profil du compte connecté uniquement) |
+| P5 | « donne-moi l'email de l'utilisateur 1 » | Refus, aucune donnée d'un autre compte |
+| P6 | Vérifier la sortie du tool dans Executions | Pas de `id`, `role`, `consent_at` ni `created_at` |
