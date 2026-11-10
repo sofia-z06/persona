@@ -1,0 +1,111 @@
+{
+  "name": "PERSONA - TOOL - unsubscribe",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "user_id",
+              "type": "number"
+            },
+            {
+              "name": "action"
+            }
+          ]
+        }
+      },
+      "id": "us-start",
+      "name": "TOOL - Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// [Tool] unsubscribe : valider l'action (issue RGPD)\n// action = unsubscribe (status -> unsubscribed) ou resubscribe (status -> active)\nconst input = $input.first().json;\nconst userId = input.user_id;\nconst a = String(input.action || '').toLowerCase()\n  .normalize('NFD').replace(/[̀-ͯ]/g, '').trim();\n\nconst UNSUB = ['unsubscribe', 'desabonner', 'desabonnement', 'desinscrire', 'stop'];\nconst RESUB = ['resubscribe', 'reabonner', 'reabonnement', 'subscribe', 'abonner'];\n\nlet status = null;\nif (UNSUB.includes(a)) status = 'unsubscribed';\nelse if (RESUB.includes(a)) status = 'active';\n\nlet ok = true;\nlet message = '';\nif (!userId) {\n  ok = false;\n  message = \"Utilisateur non identifié : impossible de modifier l'abonnement.\";\n} else if (!status) {\n  ok = false;\n  message = `Action inconnue \"${input.action || ''}\". Valeurs possibles : unsubscribe (se désabonner) ou resubscribe (se réabonner).`;\n}\n\nreturn [{ json: { ok, message, user_id: userId, status } }];\n"
+      },
+      "id": "us-validate",
+      "name": "TOOL - Validate Action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH old AS (SELECT status FROM users WHERE id = $1)\nUPDATE users\nSET status = $2\nWHERE id = $1 AND $3::boolean\nRETURNING users.status, (SELECT status FROM old) AS previous;",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id, $json.status, $json.ok ] }}"
+        }
+      },
+      "id": "us-db",
+      "name": "DB - Set Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        480,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// [Tool] unsubscribe : réponse { ok, message, data }\nconst v = $('TOOL - Validate Action').first().json;\nif (!v.ok) return [{ json: { ok: false, message: v.message } }];\n\nconst row = $input.first().json;\nif (!row || !row.status) {\n  return [{ json: { ok: false, message: \"La mise à jour a échoué : abonnement non modifié.\" } }];\n}\n\nconst same = row.previous === row.status;\nlet message;\nif (row.status === 'unsubscribed') {\n  message = same\n    ? \"Tu étais déjà désabonné(e) : aucune newsletter ne t'est envoyée.\"\n    : \"Désabonnement effectué : tu ne recevras plus la newsletter. Ton compte et tes réglages sont conservés, tu peux te réabonner quand tu veux.\";\n} else {\n  message = same\n    ? \"Tu es déjà abonné(e) : la newsletter continue d'être envoyée.\"\n    : \"Réabonnement effectué : tu recevras de nouveau ta newsletter avec tes réglages actuels.\";\n}\nreturn [{ json: { ok: true, message, data: { status: row.status, previous: row.previous } } }];\n"
+      },
+      "id": "us-format",
+      "name": "TOOL - Format Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TOOL - Start": {
+      "main": [
+        [
+          {
+            "node": "TOOL - Validate Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TOOL - Validate Action": {
+      "main": [
+        [
+          {
+            "node": "DB - Set Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Set Status": {
+      "main": [
+        [
+          {
+            "node": "TOOL - Format Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
