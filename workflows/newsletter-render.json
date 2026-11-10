@@ -58,7 +58,10 @@
   "active": false,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "saveDataSuccessExecution": "none",
+    "saveManualExecutions": false,
+    "saveDataErrorExecution": "all"
   },
   "versionId": "5662d966-a6a2-454f-955c-906d8f78cc7d",
   "meta": {},
