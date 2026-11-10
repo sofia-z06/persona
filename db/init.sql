@@ -65,6 +65,19 @@ CREATE TABLE IF NOT EXISTS sent_articles (
 
 -- la PK couvre les recherches par user_id ; cet index couvre celles par article_id
 CREATE INDEX IF NOT EXISTS sent_articles_article_idx ON sent_articles (article_id);
+
 -- #21 : cache des résumés LLM
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS summarized_at TIMESTAMPTZ;
+
+-- #23 : date du dernier envoi, pour ne jamais envoyer deux fois le même jour
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_sent_at TIMESTAMPTZ;
+
+-- ============================================================
+-- delete_requests : demandes de suppression en attente de confirmation (#24)
+-- la suppression n'a lieu que si la confirmation arrive dans un message suivant
+-- ============================================================
+CREATE TABLE IF NOT EXISTS delete_requests (
+    session_id TEXT PRIMARY KEY,
+    exec_id TEXT NOT NULL,
+    requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
