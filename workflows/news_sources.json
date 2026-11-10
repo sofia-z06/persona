@@ -568,17 +568,10 @@
       ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "1e207543-ab6f-4d80-880e-71f7885b457b",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "77651b12194904de94a26f6ca97e0922f92fab4e56e206db979ea3ce4e89b83f"
-  },
-  "nodeGroups": [],
-  "id": "1G1XP5Pt1lvZGDIO",
   "tags": []
 }
