@@ -1,0 +1,456 @@
+{
+  "name": "PERSONA - NEWSLETTER - Send",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "bfb3a209-2ada-4073-b1e0-93523774c8c6",
+      "name": "SEND - Every 15 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -96
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "b8653d88-3f0a-48de-bfe3-967d027565c5",
+      "name": "SEND - Test (manuel)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE users u\nSET last_sent_at = NOW()\nWHERE u.status = 'active'\n  AND u.send_time IS NOT NULL\n  AND cardinality(u.interests) > 0\n  AND MOD(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE u.timezone)::time - u.send_time))::int + 86400, 86400) < 900\n  AND (u.last_sent_at IS NULL\n       OR (u.last_sent_at AT TIME ZONE u.timezone)::date < (NOW() AT TIME ZONE u.timezone)::date)\nRETURNING u.id AS user_id;",
+        "options": {}
+      },
+      "id": "0310fc03-97cd-4efc-9076-3dd38d8e5f8c",
+      "name": "DB - Claim Due Users",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "wXBHLLxHWNT7flPV",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "a401b64c-8933-4baa-accb-c0c029c21392",
+      "name": "SEND - Loop Users",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "u7tgxyDocnCdX49s",
+          "mode": "list",
+          "cachedResultName": "PERSONA - NEWSLETTER - Select Articles",
+          "cachedResultUrl": "/workflow/u7tgxyDocnCdX49s"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $json.user_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "03c84c73-05e9-4e41-b35c-ff021e61a6ec",
+      "name": "SEND - Select Articles",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        896,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "pXl0vg2cbg7IqxxB",
+          "mode": "list",
+          "cachedResultName": "PERSONA - NEWSLETTER - Summarize Articles",
+          "cachedResultUrl": "/workflow/pXl0vg2cbg7IqxxB"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "article_ids": "={{ $json.articles.length ? $json.articles.map(a => a.id).join(',') : '0' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "article_ids",
+              "displayName": "article_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "any"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "048736cf-4f94-4c45-85be-9c83e4df8090",
+      "name": "SEND - Summarize Articles",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        0
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const user = $('SEND - Select Articles').first().json;\nconst summaries = Object.fromEntries(\n  $('SEND - Summarize Articles').all().map(i => i.json).filter(a => a && a.id).map(a => [a.id, a.summary])\n);\nconst articles = (user.articles || []).map(a => ({ ...a, summary: summaries[a.id] ?? a.summary }));\nreturn [{ json: { user_id: user.user_id, email: user.email, pseudo: user.pseudo, articles } }];"
+      },
+      "id": "e65cd826-db72-4c10-9e5b-85f625701500",
+      "name": "SEND - Build Render Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "wDKK8qz2SGi0yTnX",
+          "mode": "list",
+          "cachedResultName": "PERSONA - NEWSLETTER - Render",
+          "cachedResultUrl": "/workflow/wDKK8qz2SGi0yTnX"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $json.email }}",
+            "pseudo": "={{ $json.pseudo }}",
+            "articles": "={{ $json.articles }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "pseudo",
+              "displayName": "pseudo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "articles",
+              "displayName": "articles",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "d1a191a5-cdec-4352-a7be-c6bfcae0bc49",
+      "name": "SEND - Render",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1568,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "Persona <no-reply@persona.local>",
+        "toEmail": "={{ $json.email }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "both",
+        "text": "={{ $json.text }}",
+        "html": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "8d8ac251-0e28-43d3-879e-3c682de826a9",
+      "name": "SEND - Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1792,
+        0
+      ],
+      "webhookId": "697576e1-b14a-437c-8f8a-0285522ee72f",
+      "credentials": {
+        "smtp": {
+          "id": "4yYnXbUCedO3M21l",
+          "name": "smtp"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO sent_articles (user_id, article_id)\nSELECT $1::int, unnest($2::int[])\nON CONFLICT DO NOTHING;",
+        "options": {
+          "queryReplacement": "={{ [ $('SEND - Build Render Input').first().json.user_id, '{' + $('SEND - Render').first().json.article_ids.join(',') + '}' ] }}"
+        }
+      },
+      "id": "15e4235d-fc01-492d-a4f2-4172ec95bd40",
+      "name": "DB - Save Sent Articles",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2016,
+        -96
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "wXBHLLxHWNT7flPV",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8d604b13-6d81-4b2a-b897-f7c49dc6a0e3",
+              "leftValue": "={{ $json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cd341aaf-dd0e-4f56-afff-115b26e22c07",
+      "name": "SEND - Has Due Users",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "SEND - Every 15 min": {
+      "main": [
+        [
+          {
+            "node": "DB - Claim Due Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND - Test (manuel)": {
+      "main": [
+        [
+          {
+            "node": "DB - Claim Due Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Claim Due Users": {
+      "main": [
+        [
+          {
+            "node": "SEND - Has Due Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND - Loop Users": {
+      "main": [
+        [],
+        [
+          {
+            "node": "SEND - Select Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND - Select Articles": {
+      "main": [
+        [
+          {
+            "node": "SEND - Summarize Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND - Summarize Articles": {
+      "main": [
+        [
+          {
+            "node": "SEND - Build Render Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND - Build Render Input": {
+      "main": [
+        [
+          {
+            "node": "SEND - Render",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND - Render": {
+      "main": [
+        [
+          {
+            "node": "SEND - Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND - Send Email": {
+      "main": [
+        [
+          {
+            "node": "DB - Save Sent Articles",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SEND - Loop Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Save Sent Articles": {
+      "main": [
+        [
+          {
+            "node": "SEND - Loop Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND - Has Due Users": {
+      "main": [
+        [
+          {
+            "node": "SEND - Loop Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c6168aa8-8858-40b6-9597-25b5631c5075",
+  "meta": {
+    "instanceId": "e2994b310ac8273141353449df49ac6619c260178049e5d642618a4e7dd49701"
+  },
+  "nodeGroups": [],
+  "id": "79knhjvrxNOxtaSd",
+  "tags": []
+}
