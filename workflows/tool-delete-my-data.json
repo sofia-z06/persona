@@ -15,6 +15,9 @@
             {
               "name": "confirm",
               "type": "boolean"
+            },
+            {
+              "name": "exec_id"
             }
           ]
         }
@@ -30,12 +33,12 @@
     },
     {
       "parameters": {
-        "jsCode": "const { user_id, session_id, confirm } = $input.first().json;\n\nif (confirm !== true) {\n  return [{\n    json: {\n      ok: false,\n      message: \"Suppression non effectuée : il faut d'abord la confirmation explicite de l'utilisateur. Explique-lui que cette action efface définitivement son compte, ses réglages et son historique, et demande-lui de confirmer.\"\n    }\n  }];\n}\n\nreturn [{ json: { ok: true, user_id, session_id } }];"
+        "jsCode": "const { user_id, session_id, confirm } = $('TOOL - Start').first().json;\nconst { confirmable } = $input.first().json;\n\nif (confirm !== true || confirmable !== true) {\n  return [{\n    json: {\n      ok: false,\n      message: \"Suppression non effectuée : la confirmation doit arriver dans un message séparé, après avoir prévenu l'utilisateur. Explique-lui que cette action efface définitivement son compte, ses réglages et son historique, et demande-lui de confirmer dans son prochain message.\"\n    }\n  }];\n}\n\nreturn [{ json: { ok: true, user_id, session_id } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        224,
+        448,
         0
       ],
       "id": "21601de1-cebc-465e-b233-011dea46f773",
@@ -69,7 +72,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.4,
       "position": [
-        448,
+        672,
         0
       ],
       "id": "8e1aa1ce-13d6-4bad-b30d-b481ca3ee108",
@@ -78,7 +81,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH target AS (SELECT id, email FROM users WHERE id = $1),\n   user_sessions AS (SELECT session_id FROM sessions WHERE user_id = $1),\n   del_history AS (DELETE FROM n8n_chat_histories WHERE session_id IN (SELECT session_id FROM user_sessions) OR session_id = $2),\n   del_otp AS (DELETE FROM otp WHERE email IN (SELECT email FROM target)),\n   del_flow AS (DELETE FROM auth_flow WHERE email IN (SELECT email FROM target) OR session_id IN (SELECT session_id FROM user_sessions))\n   DELETE FROM users WHERE id IN (SELECT id FROM target) RETURNING id;",
+        "query": "WITH target AS (SELECT id, email FROM users WHERE id = $1),\n   user_sessions AS (SELECT session_id FROM sessions WHERE user_id = $1),\n   del_history AS (DELETE FROM n8n_chat_histories WHERE session_id IN (SELECT session_id FROM user_sessions) OR session_id = $2),\n   del_otp AS (DELETE FROM otp WHERE email IN (SELECT email FROM target)),\n   del_request AS (DELETE FROM delete_requests WHERE session_id IN (SELECT session_id FROM user_sessions) OR session_id = $2),\n   del_flow AS (DELETE FROM auth_flow WHERE email IN (SELECT email FROM target) OR session_id IN (SELECT session_id FROM user_sessions))\n   DELETE FROM users WHERE id IN (SELECT id FROM target) RETURNING id;",
         "options": {
           "queryReplacement": "={{ [$json.user_id, $json.session_id] }}"
         }
@@ -86,7 +89,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.8,
       "position": [
-        672,
+        896,
         -96
       ],
       "id": "7eeffa9e-ccfe-4140-b9ad-1acfe2e5394b",
@@ -94,7 +97,7 @@
       "alwaysOutputData": true,
       "credentials": {
         "postgres": {
-          "id": "koDcmjZ6QyS7MmwZ",
+          "id": "wXBHLLxHWNT7flPV",
           "name": "postgres"
         }
       }
@@ -106,7 +109,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        896,
+        1120,
         -96
       ],
       "id": "5429d78c-87f6-4d14-aa7d-92bcac9ad52e",
@@ -114,16 +117,26 @@
     },
     {
       "parameters": {
-        "jsCode": "return [{ json: $('TOOL - Check Confirm').first().json }];"
+        "operation": "executeQuery",
+        "query": "WITH prev AS (\n  SELECT exec_id <> $2 AND requested_at > NOW() - INTERVAL '10 minutes' AS confirmable\n  FROM delete_requests WHERE session_id = $1\n), save AS (\n  INSERT INTO delete_requests (session_id, exec_id, requested_at)\n  SELECT $1, $2, NOW()\n  WHERE NOT ($3::boolean AND COALESCE((SELECT confirmable FROM prev), false))\n  ON CONFLICT (session_id) DO UPDATE SET exec_id = EXCLUDED.exec_id, requested_at = EXCLUDED.requested_at\n)\nSELECT COALESCE((SELECT confirmable FROM prev), false) AS confirmable;",
+        "options": {
+          "queryReplacement": "={{ [ String($json.session_id ?? ''), String($json.exec_id ?? ''), $json.confirm === true ] }}"
+        }
       },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "id": "a6084897-cfb0-4db2-87fd-3bbd5150bffe",
+      "name": "DB - Delete Request",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
       "position": [
-        672,
-        96
+        224,
+        0
       ],
-      "id": "dmd-not-confirmed",
-      "name": "TOOL - Not Confirmed Reply"
+      "credentials": {
+        "postgres": {
+          "id": "wXBHLLxHWNT7flPV",
+          "name": "postgres"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -132,7 +145,7 @@
       "main": [
         [
           {
-            "node": "TOOL - Check Confirm",
+            "node": "DB - Delete Request",
             "type": "main",
             "index": 0
           }
@@ -158,13 +171,6 @@
             "type": "main",
             "index": 0
           }
-        ],
-        [
-          {
-            "node": "TOOL - Not Confirmed Reply",
-            "type": "main",
-            "index": 0
-          }
         ]
       ]
     },
@@ -178,6 +184,17 @@
           }
         ]
       ]
+    },
+    "DB - Delete Request": {
+      "main": [
+        [
+          {
+            "node": "TOOL - Check Confirm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -185,11 +202,12 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "700c1f82-e983-4b33-8600-771a5f0391bc",
+  "versionId": "0a20f6ba-d690-48c3-bd6c-7e8bc1f258ae",
   "meta": {
-    "instanceId": "77651b12194904de94a26f6ca97e0922f92fab4e56e206db979ea3ce4e89b83f"
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e2994b310ac8273141353449df49ac6619c260178049e5d642618a4e7dd49701"
   },
   "nodeGroups": [],
-  "id": "Sz55sUwBIw703Fu3",
+  "id": "vBAHo34nuSjPklE1",
   "tags": []
 }
