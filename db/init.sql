@@ -67,3 +67,4 @@ CREATE TABLE IF NOT EXISTS sent_articles (
 CREATE INDEX IF NOT EXISTS sent_articles_article_idx ON sent_articles (article_id);
 -- #21 : cache des résumés LLM
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS summarized_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_sent_at TIMESTAMPTZ;
