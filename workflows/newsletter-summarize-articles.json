@@ -86,7 +86,7 @@
       "credentials": {
         "googlePalmApi": {
           "id": "z3KnnNuAcA98EQaV",
-          "name": "Google Gemini(PaLM) Api account"
+          "name": "llm"
         }
       }
     },
@@ -174,5 +174,6 @@
   "active": false,
   "settings": {
     "executionOrder": "v1"
-  }
+  },
+  "id": "pXl0vg2cbg7IqxxB"
 }
