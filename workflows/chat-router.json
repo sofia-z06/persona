@@ -733,8 +733,7 @@
   },
   "versionId": "bf93484f-f280-4592-99f0-e7c47279be96",
   "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "e2994b310ac8273141353449df49ac6619c260178049e5d642618a4e7dd49701"
+    "templateCredsSetupCompleted": true
   },
   "nodeGroups": [],
   "id": "P862mfwHGLzL2yP3",

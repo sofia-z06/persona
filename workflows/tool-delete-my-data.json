@@ -204,8 +204,7 @@
   },
   "versionId": "0a20f6ba-d690-48c3-bd6c-7e8bc1f258ae",
   "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "e2994b310ac8273141353449df49ac6619c260178049e5d642618a4e7dd49701"
+    "templateCredsSetupCompleted": true
   },
   "nodeGroups": [],
   "id": "vBAHo34nuSjPklE1",
