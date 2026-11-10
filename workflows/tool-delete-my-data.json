@@ -94,7 +94,7 @@
       "alwaysOutputData": true,
       "credentials": {
         "postgres": {
-          "id": "wXBHLLxHWNT7flPV",
+          "id": "koDcmjZ6QyS7MmwZ",
           "name": "postgres"
         }
       }
@@ -111,6 +111,19 @@
       ],
       "id": "5429d78c-87f6-4d14-aa7d-92bcac9ad52e",
       "name": "TOOL - Delete Reply"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $('TOOL - Check Confirm').first().json }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        96
+      ],
+      "id": "dmd-not-confirmed",
+      "name": "TOOL - Not Confirmed Reply"
     }
   ],
   "pinData": {},
@@ -145,6 +158,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "TOOL - Not Confirmed Reply",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -165,12 +185,11 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "80902f09-eea8-4648-be59-da2a07d7074d",
+  "versionId": "700c1f82-e983-4b33-8600-771a5f0391bc",
   "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "e2994b310ac8273141353449df49ac6619c260178049e5d642618a4e7dd49701"
+    "instanceId": "77651b12194904de94a26f6ca97e0922f92fab4e56e206db979ea3ce4e89b83f"
   },
   "nodeGroups": [],
-  "id": "vBAHo34nuSjPklE1",
+  "id": "Sz55sUwBIw703Fu3",
   "tags": []
 }
