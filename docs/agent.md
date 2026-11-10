@@ -136,3 +136,44 @@ Tests :
 | I3 | « je veux de la cuisine » | Refus, liste des thèmes possibles, rien modifié |
 | I4 | « intelligence artificielle et santé » | Enregistré : ia, sante |
 | I5 | Vérifier en base | `SELECT email, interests, send_time, timezone FROM users;` |
+
+### unsubscribe
+
+Sous-workflow `PERSONA - TOOL - unsubscribe` (`workflows/tool-unsubscribe.json`).
+
+| Entrée | Source |
+|---|---|
+| `user_id` | injecté : `{{ $('CHAT - Build Context').first().json.user_id }}` (jamais `$fromAI`) |
+| `action` | fourni par l'agent : `unsubscribe` ou `resubscribe` |
+
+Traitement : `unsubscribe` → `status = 'unsubscribed'`, `resubscribe` → `status = 'active'`.
+Seule la colonne `status` change : le compte, les intérêts et l'horaire sont conservés.
+Requête paramétrée, exécutée uniquement si l'action est valide. Le message indique si l'utilisateur était déjà dans cet état.
+L'envoi de la newsletter doit filtrer `WHERE status = 'active'` pour que le désabonnement soit effectif.
+
+Réponse : `{ ok, message, data: { status, previous } }`.
+
+Description (champ **Description** du nœud `TOOL - unsubscribe`) :
+
+```text
+Désabonne ou réabonne l'utilisateur connecté à la newsletter. L'utilisateur est identifié automatiquement par le système : ne fournis que l'action.
+
+Paramètre action : "unsubscribe" pour arrêter l'envoi de la newsletter, "resubscribe" pour le reprendre.
+
+Le désabonnement ne supprime rien : le compte, les centres d'intérêt et l'heure d'envoi sont conservés. Si l'utilisateur veut supprimer toutes ses données, utilise delete_my_data à la place.
+
+Avant de désabonner, demande une confirmation à l'utilisateur et attends sa réponse. Le réabonnement ne demande pas de confirmation.
+
+Réponse : { ok, message, data }. Si ok vaut true, reformule le message à l'utilisateur. Si ok vaut false, rien n'a été modifié : explique-le, sans dire que c'est fait.
+```
+
+Tests :
+
+| # | Message | Résultat attendu | En base |
+|---|---|---|---|
+| U1 | « je ne veux plus recevoir la newsletter » | L'agent demande confirmation, n'appelle pas encore le tool | `active` |
+| U2 | « oui » | Tool appelé avec `unsubscribe`, confirmation | `unsubscribed`, intérêts et horaire inchangés |
+| U3 | « réabonne-moi » | Tool appelé avec `resubscribe`, confirmation | `active` |
+| U4 | « désabonne-moi » alors que déjà désabonné | Message « déjà désabonné(e) » | `unsubscribed` |
+
+Vérification : `SELECT email, status, interests, send_time FROM users;`
