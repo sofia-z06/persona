@@ -65,3 +65,5 @@ CREATE TABLE IF NOT EXISTS sent_articles (
 
 -- la PK couvre les recherches par user_id ; cet index couvre celles par article_id
 CREATE INDEX IF NOT EXISTS sent_articles_article_idx ON sent_articles (article_id);
+-- #21 : cache des résumés LLM
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS summarized_at TIMESTAMPTZ;
