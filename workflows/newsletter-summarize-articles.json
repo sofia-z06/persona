@@ -1,0 +1,178 @@
+{
+  "name": "PERSONA - NEWSLETTER - Summarize Articles",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "article_ids"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "sum-start",
+      "name": "SUM - Start"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "id": "sum-manual",
+      "name": "SUM - Test (manuel)"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Articles à résumer (issue #21) : seulement ceux pas encore résumés (cache = summarized_at)\n-- $1 = liste d'ids \"45,49\" (envoi) ou NULL (test : articles qui intéressent au moins un abonné actif)\nSELECT id, title, summary AS extract, url, source\nFROM articles a\nWHERE a.summarized_at IS NULL\n  AND (\n    ($1::text IS NOT NULL AND a.id = ANY (string_to_array($1::text, ',')::int[]))\n    OR ($1::text IS NULL AND EXISTS (\n      SELECT 1 FROM users u WHERE u.status = 'active' AND a.tags && u.interests))\n  )\nORDER BY a.published_at DESC NULLS LAST\nLIMIT CASE WHEN $1::text IS NULL THEN 5 ELSE 50 END;  -- test manuel : 5 articles max",
+        "options": {
+          "queryReplacement": "={{ [ $json.article_ids ? String($json.article_ids).replace(/[\\[\\]\\s]/g, '') : null ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        260,
+        100
+      ],
+      "id": "sum-get",
+      "name": "DB - Get Unsummarized",
+      "credentials": {
+        "postgres": {
+          "id": "koDcmjZ6QyS7MmwZ",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Résume cet article d'actualité en 2 à 3 phrases courtes, en français, de façon neutre et factuelle.\nN'invente aucune information : utilise uniquement le titre et l'extrait ci-dessous. Si l'extrait est vide ou trop court, reformule simplement le titre en une phrase.\nNe mets ni titre, ni lien, ni puces, ni guillemets : réponds uniquement par le résumé.\n\nTitre : {{ $json.title }}\nSource : {{ $json.source }}\nExtrait : {{ $json.extract }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        520,
+        100
+      ],
+      "id": "sum-llm",
+      "name": "LLM - Summarize"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        520,
+        320
+      ],
+      "id": "sum-gemini",
+      "name": "LLM - Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "z3KnnNuAcA98EQaV",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE articles\nSET summary = $2, summarized_at = NOW()\nWHERE id = $1\nRETURNING id, title, url, source, summary;",
+        "options": {
+          "queryReplacement": "={{ [ $('DB - Get Unsummarized').item.json.id, $json.text.trim() ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        820,
+        100
+      ],
+      "id": "sum-save",
+      "name": "DB - Save Summary",
+      "credentials": {
+        "postgres": {
+          "id": "koDcmjZ6QyS7MmwZ",
+          "name": "postgres"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "SUM - Start": {
+      "main": [
+        [
+          {
+            "node": "DB - Get Unsummarized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SUM - Test (manuel)": {
+      "main": [
+        [
+          {
+            "node": "DB - Get Unsummarized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Get Unsummarized": {
+      "main": [
+        [
+          {
+            "node": "LLM - Summarize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM - Gemini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM - Summarize",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM - Summarize": {
+      "main": [
+        [
+          {
+            "node": "DB - Save Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
