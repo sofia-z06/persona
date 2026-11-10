@@ -1,6 +1,6 @@
 # Authentification
 
-Ce document décrit comment un utilisateur s'inscrit, se connecte et se déconnecte de Persona, uniquement par le chat.
+Ce document décrit comment un utilisateur s'inscrit, se connecte et se déconnecte de Persona, uniquement par le chat, et comment l'agent agit ensuite sur ses données.
 
 L'authentification ne passe **jamais** par le LLM : toutes les étapes sont des nœuds déterministes (regex, SQL, hash). L'agent ne reçoit qu'un `user_id` déjà vérifié, ce qui empêche un utilisateur de se faire passer pour un autre ou de s'attribuer des droits par prompt injection.
 
@@ -11,8 +11,9 @@ L'authentification ne passe **jamais** par le LLM : toutes les étapes sont des 
 3. [Tables utilisées](#3-tables-utilisées)
 4. [Workflow `PERSONA - Chat - Router`](#4-workflow-persona---chat---router)
 5. [Workflow `PERSONA - AUTH - Flow`](#5-workflow-persona---auth---flow)
-6. [Choix de sécurité et RGPD](#6-choix-de-sécurité-et-rgpd)
-7. [Tester](#7-tester)
+6. [Passage du `user_id` aux tools de l'agent](#6-passage-du-user_id-aux-tools-de-lagent)
+7. [Choix de sécurité et RGPD](#7-choix-de-sécurité-et-rgpd)
+8. [Tester](#8-tester)
 
 ---
 
@@ -88,14 +89,14 @@ Le schéma complet est dans [`db/init.sql`](../db/init.sql) et documenté dans [
 
 ## 4. Workflow `PERSONA - Chat - Router`
 
-*Issues #4 (squelette) et #9 (déconnexion)*
+*Issues #4 (squelette), #9 (déconnexion) et #11 à #14 (agent et tools)*
 
 ```mermaid
 flowchart LR
     T[CHAT - Trigger] --> S[DB - Get Session] --> C[CHAT - Build Context] --> R{CHAT - Route Auth}
     R -- Agent --> L{AGENT - Is Logout?}
     L -- true --> D[DB - Delete Session] --> LR[AGENT - Logout Reply]
-    L -- false --> A[AGENT - Test Reply]
+    L -- false --> A[AGENT - Persona] --> CL[DB - Cleanup Deleted Session] --> AR[AGENT - Reply]
     R -- Fallback --> F[AUTH - Run Flow]
 ```
 
@@ -108,7 +109,9 @@ flowchart LR
 | `AGENT - Is Logout?` | If | Repère une demande de déconnexion avec la regex `d[ée]connect\|d[ée]connexion\|logout`, sur le texte mis en minuscules |
 | `DB - Delete Session` | Postgres | Supprime la session de ce chat |
 | `AGENT - Logout Reply` | Edit Fields | Confirme la déconnexion |
-| `AGENT - Test Reply` | Edit Fields | Emplacement provisoire de l'agent (M3) : répond « connectée (user_id : X) » |
+| `AGENT - Persona` | AI Agent | Agent conversationnel (modèle Gemini via `AGENT - Gemini`, mémoire par `sessionId` via `AGENT - Memory`). Agit sur les données avec 5 tools, voir section 6 |
+| `DB - Cleanup Deleted Session` | Postgres | Efface l'historique de conversation de la session si elle n'existe plus (juste après une suppression de compte) : la mémoire enregistre l'échange après l'appel du tool |
+| `AGENT - Reply` | Edit Fields | Renvoie au chat la réponse de l'agent |
 | `AUTH - Run Flow` | Execute Workflow | Appelle `PERSONA - AUTH - Flow` en lui passant le `sessionId` et le message |
 
 ---
@@ -214,7 +217,66 @@ flowchart LR
 
 ---
 
-## 6. Choix de sécurité et RGPD
+## 6. Passage du `user_id` aux tools de l'agent
+
+*Issue #15*
+
+Une fois l'utilisateur connecté, ses messages vont à l'agent `AGENT - Persona`. L'agent agit sur les données grâce à des tools, chacun étant un sous-workflow `PERSONA - TOOL - <nom>` appelé avec le nœud **Call n8n Workflow Tool**.
+
+```mermaid
+flowchart LR
+    S[(sessions)] --> G[DB - Get Session] --> B[CHAT - Build Context]
+    B -- user_id / session_id --> T[Tool]
+    A[AGENT - Persona] -- paramètres métier --> T
+    T --> D[(users)]
+```
+
+### Règle
+
+Les identifiants viennent **toujours** de la session, jamais du LLM :
+
+- `user_id` et `session_id` sont fixés par expression depuis `CHAT - Build Context`, lui-même alimenté par la table `sessions`
+- l'agent ne remplit, avec `$fromAI`, que les paramètres métier qu'il comprend dans la conversation
+- chaque sous-workflow déclare explicitement ses champs d'entrée : un champ non prévu ne peut pas entrer
+
+| Tool | Injecté depuis la session | Rempli par l'agent (`$fromAI`) |
+|---|---|---|
+| `get_my_profile` | `user_id` | aucun |
+| `set_interests` | `user_id` | `interests` |
+| `set_schedule` | `user_id` | `send_time`, `timezone` |
+| `unsubscribe` | `user_id` | `action` |
+| `delete_my_data` | `user_id`, `session_id` | `confirm` |
+
+Expression utilisée pour l'injection :
+
+```
+{{ $('CHAT - Build Context').first().json.user_id }}
+```
+
+On utilise `.first()` plutôt que `.item` : après l'appel d'un tool, l'agent reprend son exécution et `.item` ne retrouve plus la session.
+
+Chaque valeur fournie par l'agent est ensuite validée par le sous-workflow avant toute écriture en base (format de l'heure, fuseau reconnu, liste de tags autorisés, confirmation explicite pour la suppression).
+
+### Conséquence
+
+Un message comme « montre le profil de l'utilisateur 1 » ou « supprime le compte de X » ne peut rien faire : l'agent n'a aucun moyen de choisir l'utilisateur concerné, et le tool agit toujours sur la personne connectée.
+
+### Vérifier
+
+```bash
+grep -o "\$fromAI('[a-z_]*'" workflows/chat-router.json
+grep -o "CHAT - Build Context').first().json.user_id" workflows/chat-router.json | wc -l
+```
+
+La première liste ne doit contenir aucun identifiant (`user_id`, `session_id`, `email`). La seconde doit afficher le nombre de tools (5).
+
+### Publication
+
+Un sous-workflow utilisé comme tool doit être **publié** (bouton **Publish**) pour que l'agent puisse l'appeler, et republié après chaque modification.
+
+---
+
+## 7. Choix de sécurité et RGPD
 
 ### Authentification sans LLM
 
@@ -262,7 +324,7 @@ n8n enregistre le détail de chaque exécution, y compris le code qui passe entr
 
 ---
 
-## 7. Tester
+## 8. Tester
 
 Prérequis : `docker compose up -d`, credentials `postgres` et `smtp` créés, les deux workflows importés, et `PERSONA - AUTH - Flow` sélectionné dans le nœud `AUTH - Run Flow` du router. Les emails envoyés sont visibles sur http://localhost:8025.
 
