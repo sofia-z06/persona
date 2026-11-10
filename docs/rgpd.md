@@ -5,7 +5,75 @@ Responsable de traitement : l'équipe Persona (projet Epitech B-AIA-300).
 
 ## 1. Données personnelles, base légale, conservation, droits
 
-_Partie de Sofia : données stockées, base légale (consentement), durées de conservation, droits et comment les exercer dans le chat._
+### Données personnelles traitées
+
+Finalité unique : envoyer à chaque utilisateur une newsletter d'actualités personnalisée et lui permettre de la régler depuis le chat.
+
+| Donnée | Table | Pourquoi | Obligatoire |
+|---|---|---|---|
+| Email | `users` | Identifier le compte et envoyer la newsletter | Oui |
+| Pseudo | `users` | Personnaliser la salutation du mail | Non |
+| Centres d'intérêt | `users` | Choisir les articles | Oui (au moins un pour recevoir des articles) |
+| Heure et fuseau d'envoi | `users` | Envoyer la newsletter à l'heure choisie | Non (sans heure, rien n'est envoyé) |
+| Statut d'abonnement | `users` | Ne plus envoyer après un désabonnement | Oui |
+| Date du consentement | `users.consent_at` | Prouver le consentement | Oui |
+| Date du dernier envoi | `users.last_sent_at` | Éviter deux envois le même jour | Oui |
+| Articles déjà envoyés | `sent_articles` | Ne jamais renvoyer le même article | Oui |
+| Code de connexion (hashé), email, essais | `otp` | Vérifier l'email à la connexion | Oui |
+| Étape de connexion, email | `auth_flow` | Suivre la connexion en cours | Oui |
+| Identifiant de session | `sessions` | Garder l'utilisateur connecté | Oui |
+| Historique de conversation | `n8n_chat_histories` | Contexte de l'agent (10 derniers messages) | Oui |
+| Demande de suppression en attente | `delete_requests` | Exiger une confirmation dans un message séparé | Oui |
+
+Aucune donnée sensible (santé, opinions, etc.) n'est demandée. Les centres d'intérêt sont choisis dans une liste fermée (espace, science, ia, tech, international, politique, economie, sante, environnement) : « politique » ou « sante » désignent un thème d'actualité, pas une opinion ou un état de santé.
+
+### Base légale
+
+**Consentement** (article 6.1.a du RGPD).
+
+- Avant la création du compte, après la vérification de l'email, l'agent affiche ce qui est enregistré, pourquoi, combien de temps, et comment le supprimer. Le compte n'est créé que si l'utilisateur répond « oui ».
+- La date du consentement est enregistrée dans `users.consent_at`.
+- S'il répond « non », l'email saisi est effacé (`DB - Forget Email`) et aucun compte n'est créé.
+- Le consentement peut être retiré à tout moment : désabonnement ou suppression du compte depuis le chat.
+
+### Durées de conservation
+
+| Donnée | Durée |
+|---|---|
+| Compte (`users`) et historique d'envoi (`sent_articles`) | Tant que le compte existe. Supprimés immédiatement à la demande de l'utilisateur |
+| Compte désabonné | Conservé (réglages gardés pour un réabonnement) jusqu'à la suppression demandée |
+| Code de connexion (`otp`) | Valable 10 minutes, invalidé après usage ou 3 erreurs |
+| Session (`sessions`) | 24 heures, supprimée à la déconnexion |
+| Connexion en cours (`auth_flow`) | Supprimée à la fin de la connexion ou en cas de refus du consentement |
+| Demande de suppression (`delete_requests`) | Valable 10 minutes, supprimée avec le compte |
+| Historique de conversation | Supprimé avec le compte (voir les limites ci-dessous) |
+| Articles (`articles`, contenu public) | 7 jours |
+
+### Droits des utilisateurs et comment les exercer
+
+Tout se fait dans le chat, après connexion par code email. L'identité est fournie par la session, jamais par le message : on ne peut agir que sur son propre compte (vérifié dans `tests/security.md`, S3 à S5).
+
+| Droit | Comment | Outil |
+|---|---|---|
+| Accès | « montre mon profil » | `get_my_profile` |
+| Rectification | « mes centres d'intérêt : … », « envoie-moi la newsletter à 8h » | `set_interests`, `set_schedule` |
+| Retrait du consentement / opposition | « désabonne-moi » (réversible avec « réabonne-moi ») | `unsubscribe` |
+| Effacement | « supprime mes données », puis confirmation dans un second message | `delete_my_data` |
+
+La suppression efface en une fois le compte, les réglages, les sessions, l'historique de conversation, les codes de connexion et l'historique d'envoi. Elle est confirmée côté serveur dans un message séparé (`tests/security.md`, F3).
+
+Chaque newsletter rappelle en pied de page ce qui est conservé, comment se désabonner et comment supprimer ses données.
+
+### Limites connues et actions prévues
+
+| Point | Risque | Action |
+|---|---|---|
+| Les exécutions n8n enregistrent les données traitées (emails, messages du chat, code de connexion en clair avant hashage) | Copie des données hors des tables, accessible aux personnes ayant accès à n8n | Désactiver la sauvegarde des exécutions réussies pour `AUTH - Flow` et `Chat - Router`, et limiter la durée de conservation des exécutions (`EXECUTIONS_DATA_MAX_AGE`) |
+| L'historique de conversation n'est pas supprimé à la déconnexion ni à l'expiration de la session, et le dernier échange avant la suppression du compte est réécrit après la purge | Conservation plus longue que nécessaire | Le supprimer à la déconnexion, purger celui des sessions expirées et nettoyer le dernier échange après `delete_my_data` |
+| Les lignes `otp`, `auth_flow`, `sessions` expirées et `delete_requests` ne sont pas purgées automatiquement | Emails conservés sans compte (connexions abandonnées) | Workflow de purge quotidien |
+| Pas de suppression automatique des comptes inactifs | Conservation sans limite si l'utilisateur oublie le service | Supprimer les comptes désabonnés depuis plus de 12 mois, après un mail de prévenance |
+| L'email et le pseudo ne peuvent pas être modifiés depuis le chat | Rectification incomplète | Supprimer puis recréer le compte en attendant un tool dédié |
+| Pas d'export de toutes les données (portabilité) | Droit à la portabilité partiel | `get_my_profile` donne les réglages ; un export complet reste à faire |
 
 ## 2. Sous-traitants et destinataires
 
@@ -49,14 +117,14 @@ Pour la production : utiliser un projet Google rattaché à un compte situé dan
 ### Améliorations possibles
 
 - `get_my_profile` renvoie l'email au LLM à chaque consultation des réglages. On pourrait ne l'inclure que si l'utilisateur demande explicitement son email.
-- La mémoire de l'agent (`n8n_chat_histories`) conserve les 10 derniers messages par session. Elle doit être purgée à la suppression du compte, y compris le dernier échange (point relevé lors des tests de `delete_my_data`).
+- La mémoire de l'agent (`n8n_chat_histories`) conserve les 10 derniers messages par session. Sa purge est traitée dans la section 1 (limites connues).
 
 ## 4. Synthèse
 
 | Question | Réponse |
 |---|---|
-| Quoi | _section 1 (Sofia)_ ; aux tiers : voir section 2 |
-| Pourquoi | Envoyer une newsletter personnalisée et permettre de la régler par chat |
-| Combien de temps | _section 1 (Sofia)_ ; articles purgés après 7 jours ; logs Gemini limités dans le temps par Google |
+| Quoi | Email, pseudo, centres d'intérêt, heure et fuseau d'envoi, statut, date de consentement, historique d'envoi, données techniques de connexion et historique du chat (section 1) ; aux tiers : voir section 2 |
+| Pourquoi | Envoyer une newsletter personnalisée et permettre de la régler par chat ; base légale : consentement (section 1) |
+| Combien de temps | Compte et réglages tant que le compte existe ; code de connexion 10 min ; session 24 h ; articles 7 jours ; logs Gemini limités dans le temps par Google (section 1) |
 | Qui y a accès | L'équipe (admin n8n et base) ; Google (Gemini) et le fournisseur SMTP comme sous-traitants ; GNews et les flux RSS ne reçoivent aucune donnée personnelle |
-| Comment supprimer | _section 1 (Sofia)_ : « supprime mes données » dans le chat |
+| Comment supprimer | « supprime mes données » dans le chat, puis confirmation dans un second message : compte, réglages, sessions, historique du chat et d'envoi effacés en une fois (section 1) |
