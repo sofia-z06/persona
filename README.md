@@ -119,7 +119,7 @@ Les réglages suivants sont fixés directement dans `docker-compose.yml` et n'on
 
 ## 5. Importer les workflows
 
-Les 12 workflows sont dans le dossier `workflows/`. Ils s'appellent entre eux par leur identifiant : importez-les **en ligne de commande**, qui conserve ces identifiants. L'import depuis l'interface (**Import from File**) crée de nouveaux identifiants et casse les liens entre workflows.
+Les 13 workflows sont dans le dossier `workflows/`. Ils s'appellent entre eux par leur identifiant : importez-les **en ligne de commande**, qui conserve ces identifiants. L'import depuis l'interface (**Import from File**) crée de nouveaux identifiants et casse les liens entre workflows.
 
 ```bash
 docker compose exec n8n mkdir -p /tmp/workflows
@@ -127,7 +127,7 @@ for f in workflows/*.json; do docker compose cp "$f" n8n:/tmp/workflows/; done
 docker compose exec n8n n8n import:workflow --separate --input=/tmp/workflows
 ```
 
-Le message attendu est `Successfully imported 12 workflows`. Rechargez ensuite http://localhost:5678.
+Le message attendu est `Successfully imported 13 workflows`. Rechargez ensuite http://localhost:5678.
 
 | Fichier | Workflow | Rôle |
 |---|---|---|
@@ -137,6 +137,7 @@ Le message attendu est `Successfully imported 12 workflows`. Rechargez ensuite h
 | `tool-set-interests.json` | `PERSONA - TOOL - set_interests` | Tool de l'agent : enregistre les centres d'intérêt |
 | `tool-set-schedule.json` | `PERSONA - TOOL - set_schedule` | Tool de l'agent : règle l'heure et le fuseau d'envoi |
 | `tool-unsubscribe.json` | `PERSONA - TOOL - unsubscribe` | Tool de l'agent : désabonne ou réabonne |
+| `tool-block-source.json` | `PERSONA - TOOL - block_source` | Tool de l'agent : bloque ou débloque une source, ou liste les sources bloquées |
 | `tool-delete-my-data.json` | `PERSONA - TOOL - delete_my_data` | Tool de l'agent : supprime le compte et toutes les données, après confirmation dans un message séparé |
 | `news_sources.json` | `Persona - News sources` | Toutes les heures : récupère les articles (flux RSS et GNews), les tague et les enregistre ; purge ceux de plus de 7 jours |
 | `newsletter-select-articles.json` | `PERSONA - NEWSLETTER - Select Articles` | Choisit jusqu'à 5 articles par utilisateur selon ses centres d'intérêt, jamais deux fois le même |
@@ -148,7 +149,7 @@ Le message attendu est `Successfully imported 12 workflows`. Rechargez ensuite h
 
 1. Créez les 4 identifiants de la section 7. Ouvrez ensuite chaque workflow : un nœud dont l'identifiant n'est pas trouvé affiche un triangle d'avertissement, sélectionnez-y le bon identifiant puis enregistrez.
 2. Cliquez sur **Publish** dans :
-   - les 5 tools, `Select Articles`, `Summarize Articles` et `Render` : un sous-workflow doit être publié pour être appelé, sinon l'erreur est « Workflow is not active and cannot be executed » ;
+   - les 6 tools, `Select Articles`, `Summarize Articles` et `Render` : un sous-workflow doit être publié pour être appelé, sinon l'erreur est « Workflow is not active and cannot be executed » ;
    - `Persona - News sources` et `NEWSLETTER - Send`, pour activer leurs déclencheurs planifiés.
 3. Pour la page de chat publique (section 8), publiez aussi `AUTH - Flow`, puis `Chat - Router` : n8n refuse de publier un workflow tant que les sous-workflows qu'il appelle ne sont pas publiés.
 
@@ -212,6 +213,7 @@ Une fois connecté(e), vos messages sont traités par l'agent Persona, qui garde
 | `envoie-moi la newsletter à 8h` | Règle l'heure d'envoi (fuseau `Europe/Paris` par défaut) |
 | `mon fuseau est America/Montreal` | Change le fuseau d'envoi |
 | `désabonne-moi` / `réabonne-moi` | Arrête ou reprend l'envoi, sans supprimer le compte ni les réglages |
+| `bloque France 24` / `débloque France 24` / `quelles sources j'ai bloquées ?` | Ne plus recevoir (ou recevoir de nouveau) les articles d'un média, et voir la liste des sources bloquées |
 | `supprime mes données` | Persona prévient que c'est définitif et demande de confirmer dans le **message suivant** : compte, réglages, sessions, historique du chat et des envois sont alors effacés |
 
 ### Se déconnecter
