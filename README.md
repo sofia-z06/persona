@@ -83,7 +83,7 @@ docker compose ps
 | PostgreSQL | `localhost:5432` | Base de n8n et des données de Persona |
 | Mailpit | http://localhost:8025 | Faux serveur mail de développement : les emails envoyés (codes de connexion, newsletters) s'affichent ici, rien n'est réellement envoyé |
 
-Au premier lancement, PostgreSQL exécute `db/init.sql` et crée les 7 tables de Persona (`users`, `sessions`, `otp`, `auth_flow`, `articles`, `sent_articles`, `delete_requests`). Le détail est dans [`docs/database.md`](docs/database.md).
+Au premier lancement, PostgreSQL exécute `db/init.sql` et crée les 8 tables de Persona (`users`, `sessions`, `otp`, `auth_flow`, `articles`, `sent_articles`, `delete_requests`, `blocked_sources`). Le détail est dans [`docs/database.md`](docs/database.md).
 
 Ouvrez ensuite **http://localhost:5678**. Au premier lancement, n8n met une à deux minutes à préparer sa base : suivez l'avancement avec `docker compose logs -f n8n` et attendez le message `Editor is now accessible`.
 

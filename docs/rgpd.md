@@ -24,6 +24,7 @@ Finalité unique : envoyer à chaque utilisateur une newsletter d'actualités pe
 | Identifiant de session | `sessions` | Garder l'utilisateur connecté | Oui |
 | Historique de conversation | `n8n_chat_histories` | Contexte de l'agent (10 derniers messages) | Oui |
 | Demande de suppression en attente | `delete_requests` | Exiger une confirmation dans un message séparé | Oui |
+| Sources bloquées | `blocked_sources` | Ne plus envoyer les articles d'un média que l'utilisateur a refusé | Non |
 
 Aucune donnée sensible (santé, opinions, etc.) n'est demandée. Les centres d'intérêt sont choisis dans une liste fermée (espace, science, ia, tech, international, politique, economie, sante, environnement) : « politique » ou « sante » désignent un thème d'actualité, pas une opinion ou un état de santé.
 
