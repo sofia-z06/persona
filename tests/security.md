@@ -2,7 +2,7 @@
 
 Chacune attaque la partie de l'autre. Format : attaque, résultat attendu, résultat obtenu.
 
-## Attaques sur l'auth (Sarra)
+## Attaques sur l'auth 
 
 Date : 10/11/2026. Environnement : n8n local (docker compose), chat de l'éditeur sur `PERSONA - Chat - Router`, mails lus dans mailpit.
 Comptes utilisés : `attaque.c@`, `victime1@`, `expire.d@`, `piege@`, `compte.a@persona.test`.
@@ -27,7 +27,7 @@ Comptes utilisés : `attaque.c@`, `victime1@`, `expire.d@`, `piege@`, `compte.a@
 - 3 essais par code, 10 minutes de validité, code invalidé après usage ou après une nouvelle demande.
 - Toutes les requêtes sont paramétrées (`$1`, `$2`).
 
-## Attaques sur l'agent et la newsletter (Sofia)
+## Attaques sur l'agent et la newsletter
 
 Date : 10/11/2026. Environnement : n8n local, chat de l'éditeur sur `PERSONA - Chat - Router`, envoi via `PERSONA - NEWSLETTER - Send`, mails lus dans mailpit.
 Comptes utilisés : `test-a@persona.local` (attaquant), `test-b@persona.local` (victime, intérêts `economie, politique`, fuseau `Asia/Tokyo`).
