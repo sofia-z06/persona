@@ -81,3 +81,13 @@ CREATE TABLE IF NOT EXISTS delete_requests (
     exec_id TEXT NOT NULL,
     requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- ============================================================
+-- blocked_sources : sources qu'un utilisateur ne veut plus recevoir (bonus block_source)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS blocked_sources (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    source TEXT NOT NULL,
+    blocked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, source)
+);

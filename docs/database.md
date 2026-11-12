@@ -16,9 +16,9 @@ Persona utilise PostgreSQL (service `postgres` du `docker-compose.yml`). Le sch�
 >   docker compose down -v && docker compose up -d
 >   ```
 
-Vérifier que les 7 tables existent :
+Vérifier que les 8 tables existent :
 ```bash
-docker compose exec postgres psql -U persona -d persona -c '\dt (users|sessions|otp|auth_flow|articles|sent_articles|delete_requests)'
+docker compose exec postgres psql -U persona -d persona -c '\dt (users|sessions|otp|auth_flow|articles|sent_articles|delete_requests|blocked_sources)'
 ```
 
 ## Vue d'ensemble
