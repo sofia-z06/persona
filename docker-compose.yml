@@ -18,7 +18,7 @@ services:
       retries: 10
 
   n8n:
-    image: docker.n8n.io/n8nio/n8n:latest
+    image: docker.n8n.io/n8nio/n8n:2.45.6
     restart: unless-stopped
     ports:
       - "5678:5678"
@@ -34,6 +34,8 @@ services:
       TZ: Europe/Paris
       N8N_DIAGNOSTICS_ENABLED: "false"
       NODE_FUNCTION_ALLOW_BUILTIN: crypto
+      EXECUTIONS_DATA_PRUNE: "true"
+      EXECUTIONS_DATA_MAX_AGE: 168
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:
