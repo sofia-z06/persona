@@ -3,7 +3,14 @@
   "nodes": [
     {
       "parameters": {
-        "options": {}
+        "public": true,
+        "initialMessages": "Bonjour ! Je suis Persona, ta newsletter d'actualités personnalisée. Pour commencer, indique-moi ton adresse email.",
+        "options": {
+          "inputPlaceholder": "Écris ton message…",
+          "loadPreviousSession": "notSupported",
+          "subtitle": "Ta newsletter d'actualités, réglée en discutant",
+          "title": "Persona"
+        }
       },
       "id": "a8f84c49-40f2-41f9-8755-7d7b0f0d13f2",
       "name": "CHAT - Trigger",
@@ -726,7 +733,7 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
@@ -734,7 +741,7 @@
     "saveManualExecutions": false,
     "saveDataErrorExecution": "all"
   },
-  "versionId": "bf93484f-f280-4592-99f0-e7c47279be96",
+  "versionId": "999c1425-eb6c-424f-9a87-a49807f25f46",
   "meta": {
     "templateCredsSetupCompleted": true
   },
