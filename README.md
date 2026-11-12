@@ -150,7 +150,7 @@ Le message attendu est `Successfully imported 12 workflows`. Rechargez ensuite h
 2. Cliquez sur **Publish** dans :
    - les 5 tools, `Select Articles`, `Summarize Articles` et `Render` : un sous-workflow doit être publié pour être appelé, sinon l'erreur est « Workflow is not active and cannot be executed » ;
    - `Persona - News sources` et `NEWSLETTER - Send`, pour activer leurs déclencheurs planifiés.
-3. `Chat - Router` n'a pas besoin d'être publié pour utiliser le chat de l'éditeur (section 8).
+3. Pour la page de chat publique (section 8), publiez aussi `AUTH - Flow`, puis `Chat - Router` : n8n refuse de publier un workflow tant que les sous-workflows qu'il appelle ne sont pas publiés.
 
 Après chaque modification d'un sous-workflow, cliquez à nouveau sur **Publish** pour que la nouvelle version soit utilisée.
 
@@ -189,11 +189,13 @@ Le modèle utilisé est **Gemini 3.5 Flash Lite** : sur l'offre gratuite, il aut
 
 ## 8. Utiliser Persona via le chatbot
 
-Ouvrez le workflow `PERSONA - Chat - Router` et cliquez sur **Open chat** en bas de l'éditeur. Le bouton **Reset** du chat démarre une nouvelle conversation, comme un nouvel utilisateur.
+Persona a sa propre page de chat : **http://localhost:5678/webhook/persona-chat/chat** (une fois `Chat - Router` publié, voir section 5). Chaque onglet ou navigateur est une session différente, comme un nouvel utilisateur.
+
+Pour tester sans publier, ouvrez le workflow `PERSONA - Chat - Router` et cliquez sur **Open chat** en bas de l'éditeur. Le bouton **Reset** du chat démarre une nouvelle conversation.
 
 ### S'inscrire ou se connecter
 
-1. Envoyez n'importe quel message : Persona se présente et demande votre adresse email
+1. Persona se présente et demande votre adresse email (sur la page de chat, ce message s'affiche dès l'ouverture)
 2. Envoyez votre email : un code à 6 chiffres vous est envoyé (visible sur http://localhost:8025 en développement)
 3. Envoyez le code. Il est valable 10 minutes, avec 3 essais maximum
 4. **Première connexion** : Persona explique quelles données sont enregistrées, pourquoi et combien de temps, puis demande votre accord. Répondez `oui` pour créer votre compte, ou `non` pour que rien ne soit conservé
@@ -287,6 +289,8 @@ docker compose down -v
 | Aucun email reçu | Vérifier que Mailpit tourne (`docker compose ps`) et que l'identifiant `smtp` pointe vers l'hôte `mailpit`, port `1025` |
 | « Workflow does not exist » sur `AUTH - Run Flow`, un tool ou un nœud de `Send` | Les workflows ont été importés depuis l'interface : les réimporter en ligne de commande (section 5), ou resélectionner le workflow appelé dans le nœud |
 | « Workflow is not active and cannot be executed » | Le sous-workflow appelé (tool, Select, Summarize ou Render) n'est pas publié : l'ouvrir et cliquer sur **Publish** |
+| « Workflow could not be published … which is not published » | Un sous-workflow appelé n'est pas publié (souvent `AUTH - Flow` pour le Router) : le publier d'abord, puis republier |
+| La page de chat affiche une erreur ou ne charge pas | `Chat - Router` n'est pas publié, ou n8n n'est pas démarré : voir section 5 |
 | L'agent ne répond pas ou charge sans fin | Limite de requêtes Gemini atteinte. Vérifier sur Google AI Studio (**Usage**) et utiliser Gemini 3.5 Flash Lite (voir section 7) |
 | Aucune newsletter reçue | Vérifier que `NEWSLETTER - Send` est publié, que l'utilisateur a une heure d'envoi, au moins un centre d'intérêt et le statut `active`, et qu'il reste des articles qu'il n'a pas encore reçus (section 9) |
 | Envoi programmé à la mauvaise heure | Vérifier `GENERIC_TIMEZONE` et `TZ` dans `docker-compose.yml`, puis relancer `docker compose up -d` |
