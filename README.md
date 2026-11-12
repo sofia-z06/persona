@@ -83,7 +83,7 @@ docker compose ps
 | PostgreSQL | `localhost:5432` | Base de n8n et des données de Persona |
 | Mailpit | http://localhost:8025 | Faux serveur mail de développement : les emails envoyés (codes de connexion, newsletters) s'affichent ici, rien n'est réellement envoyé |
 
-Au premier lancement, PostgreSQL exécute `db/init.sql` et crée les 6 tables de Persona (`users`, `sessions`, `otp`, `auth_flow`, `articles`, `sent_articles`). Le détail est dans [`docs/database.md`](docs/database.md).
+Au premier lancement, PostgreSQL exécute `db/init.sql` et crée les 7 tables de Persona (`users`, `sessions`, `otp`, `auth_flow`, `articles`, `sent_articles`, `delete_requests`). Le détail est dans [`docs/database.md`](docs/database.md).
 
 Ouvrez ensuite **http://localhost:5678**. Au premier lancement, n8n met une à deux minutes à préparer sa base : suivez l'avancement avec `docker compose logs -f n8n` et attendez le message `Editor is now accessible`.
 
@@ -113,52 +113,48 @@ Les réglages suivants sont fixés directement dans `docker-compose.yml` et n'on
 | `GENERIC_TIMEZONE` / `TZ` | `Europe/Paris` | Fuseau horaire des nœuds de planification et du conteneur |
 | `N8N_DIAGNOSTICS_ENABLED` | `false` | Désactive la télémétrie envoyée à n8n |
 | `NODE_FUNCTION_ALLOW_BUILTIN` | `crypto` | Autorise le module `crypto` dans les nœuds Code (génération et hash des codes de connexion) |
+| `EXECUTIONS_DATA_PRUNE` / `EXECUTIONS_DATA_MAX_AGE` | `true` / `168` | Supprime automatiquement les exécutions enregistrées après 7 jours (RGPD, voir [`docs/rgpd.md`](docs/rgpd.md)) |
 
 ---
 
 ## 5. Importer les workflows
 
-Tous les workflows sont dans le dossier `workflows/`.
+Les 12 workflows sont dans le dossier `workflows/`. Ils s'appellent entre eux par leur identifiant : importez-les **en ligne de commande**, qui conserve ces identifiants. L'import depuis l'interface (**Import from File**) crée de nouveaux identifiants et casse les liens entre workflows.
+
+```bash
+docker compose exec n8n mkdir -p /tmp/workflows
+for f in workflows/*.json; do docker compose cp "$f" n8n:/tmp/workflows/; done
+docker compose exec n8n n8n import:workflow --separate --input=/tmp/workflows
+```
+
+Le message attendu est `Successfully imported 12 workflows`. Rechargez ensuite http://localhost:5678.
 
 | Fichier | Workflow | Rôle |
 |---|---|---|
-| `workflows/chat-router.json` | `PERSONA - Chat - Router` | Point d'entrée du chat : vérifie la session, gère la déconnexion, envoie vers l'agent ou vers l'authentification |
-| `workflows/auth-flow.json` | `PERSONA - AUTH - Flow` | Authentification complète : email, code de connexion, consentement RGPD, création du compte et de la session |
-| `workflows/tool-get-my-profile.json` | `PERSONA - TOOL - get_my_profile` | Tool de l'agent : renvoie le profil de l'utilisateur connecté |
+| `chat-router.json` | `PERSONA - Chat - Router` | Point d'entrée du chat : vérifie la session, gère la déconnexion, envoie vers l'authentification ou vers l'agent |
+| `auth-flow.json` | `PERSONA - AUTH - Flow` | Authentification : email, code de connexion, consentement RGPD, création du compte et de la session |
+| `tool-get-my-profile.json` | `PERSONA - TOOL - get_my_profile` | Tool de l'agent : affiche le profil de l'utilisateur connecté |
+| `tool-set-interests.json` | `PERSONA - TOOL - set_interests` | Tool de l'agent : enregistre les centres d'intérêt |
+| `tool-set-schedule.json` | `PERSONA - TOOL - set_schedule` | Tool de l'agent : règle l'heure et le fuseau d'envoi |
+| `tool-unsubscribe.json` | `PERSONA - TOOL - unsubscribe` | Tool de l'agent : désabonne ou réabonne |
+| `tool-delete-my-data.json` | `PERSONA - TOOL - delete_my_data` | Tool de l'agent : supprime le compte et toutes les données, après confirmation dans un message séparé |
+| `news_sources.json` | `Persona - News sources` | Toutes les heures : récupère les articles (flux RSS et GNews), les tague et les enregistre ; purge ceux de plus de 7 jours |
+| `newsletter-select-articles.json` | `PERSONA - NEWSLETTER - Select Articles` | Choisit jusqu'à 5 articles par utilisateur selon ses centres d'intérêt, jamais deux fois le même |
+| `newsletter-summarize-articles.json` | `PERSONA - NEWSLETTER - Summarize Articles` | Résume les articles avec le LLM, une seule fois par article |
+| `newsletter-render.json` | `PERSONA - NEWSLETTER - Render` | Construit l'email (HTML responsive et version texte), avec désinscription et mention RGPD |
+| `newsletter-send.json` | `PERSONA - NEWSLETTER - Send` | Toutes les 15 min : envoie la newsletter aux utilisateurs dont c'est l'heure, dans leur fuseau |
 
-### Importer un fichier
+### Après l'import
 
-1. Ouvrir http://localhost:5678
-2. **Create workflow** (ou le bouton `+`)
-3. Menu **⋯** (en haut à droite) → **Import from File…**
-4. Sélectionner le fichier `.json`, puis enregistrer (`Ctrl+S` / `Cmd+S`)
+1. Créez les 4 identifiants de la section 7. Ouvrez ensuite chaque workflow : un nœud dont l'identifiant n'est pas trouvé affiche un triangle d'avertissement, sélectionnez-y le bon identifiant puis enregistrez.
+2. Cliquez sur **Publish** dans :
+   - les 5 tools, `Select Articles`, `Summarize Articles` et `Render` : un sous-workflow doit être publié pour être appelé, sinon l'erreur est « Workflow is not active and cannot be executed » ;
+   - `Persona - News sources` et `NEWSLETTER - Send`, pour activer leurs déclencheurs planifiés.
+3. `Chat - Router` n'a pas besoin d'être publié pour utiliser le chat de l'éditeur (section 8).
 
-### Ordre d'import
+Après chaque modification d'un sous-workflow, cliquez à nouveau sur **Publish** pour que la nouvelle version soit utilisée.
 
-Le router appelle les autres workflows : importez-le **en dernier**.
-
-1. `tool-get-my-profile.json`, puis cliquez sur **Publish** : un sous-workflow utilisé comme tool doit être publié, sinon l'agent affiche « Workflow is not active and cannot be executed »
-2. `auth-flow.json`
-3. `chat-router.json`
-
-### Refaire les liens entre workflows
-
-L'identifiant d'un workflow change d'une instance n8n à l'autre. Après l'import, ouvrez `PERSONA - Chat - Router` et resélectionnez les workflows appelés (champ **Workflow** → **From list**) :
-
-| Nœud | Workflow à sélectionner |
-|---|---|
-| `AUTH - Run Flow` | `PERSONA - AUTH - Flow` |
-| `TOOL - get_my_profile` | `PERSONA - TOOL - get_my_profile` |
-
-Sans cette étape, le chat répond « Workflow does not exist ».
-
-### Vérifier les identifiants
-
-Dans les trois workflows, vérifiez que chaque nœud utilise le bon identifiant (voir section 7) : `postgres` pour les nœuds Postgres et `AGENT - Memory`, `smtp` pour `AUTH - Send OTP`, `llm` pour `AGENT - Gemini`. Un nœud sans identifiant affiche un triangle d'avertissement.
-
-Après chaque modification d'un tool, cliquez à nouveau sur **Publish** pour que l'agent utilise la nouvelle version.
-
-Le fonctionnement détaillé de chaque nœud est décrit dans [`docs/auth.md`](docs/auth.md).
+Le fonctionnement détaillé est décrit dans [`docs/auth.md`](docs/auth.md), [`docs/agent.md`](docs/agent.md) et [`docs/newsletter.md`](docs/newsletter.md).
 
 ---
 
@@ -182,7 +178,7 @@ Aucun identifiant n'est fourni dans ce repo. Vous devez créer les vôtres dans 
 |---|---|---|---|
 | `llm` | Google Gemini (PaLM) API | Nœud `AGENT - Gemini` | [Google AI Studio](https://aistudio.google.com) → **API keys** → **Create API key** (offre gratuite, sans carte bancaire) |
 | `smtp` | SMTP | Nœud Send Email | En développement : Mailpit, déjà lancé par `docker compose` (host `mailpit`, port `1025`, sans utilisateur ni mot de passe, SSL/TLS désactivé). Les emails envoyés sont visibles sur http://localhost:8025 |
-| `news-api` | Header Auth / API du fournisseur | Nœuds HTTP Request | Dashboard du fournisseur |
+| `News API Key` | Query Auth (nom du paramètre : `apikey`) | Nœud `API news` de `Persona - News sources` | [GNews](https://gnews.io) → **Dashboard** → clé d'API (offre gratuite) |
 | `postgres` | Postgres | Nœuds Postgres | Valeurs de votre `.env` (hôte : `postgres`, port `5432`, SSL désactivé) |
 
 Pour `llm`, dans **Allowed HTTP Request Domains**, choisir **Specific Domains** et indiquer `generativelanguage.googleapis.com` : la clé ne peut alors être envoyée à aucun autre domaine.
@@ -207,24 +203,39 @@ Ouvrez le workflow `PERSONA - Chat - Router` et cliquez sur **Open chat** en bas
 
 Une fois connecté(e), vos messages sont traités par l'agent Persona, qui garde le contexte de la conversation. Exemples :
 
-- `c'est quoi mes réglages ?` : affiche votre profil (email, centres d'intérêt, heure et fuseau d'envoi, statut)
-- `quel est mon email ?`
+| Message | Effet |
+|---|---|
+| `c'est quoi mes réglages ?` | Affiche votre profil (email, centres d'intérêt, heure et fuseau d'envoi, statut) |
+| `mes centres d'intérêt : ia, espace et science` | Enregistre vos centres d'intérêt. Thèmes possibles : `espace`, `science`, `ia`, `tech`, `international`, `politique`, `economie`, `sante`, `environnement` |
+| `envoie-moi la newsletter à 8h` | Règle l'heure d'envoi (fuseau `Europe/Paris` par défaut) |
+| `mon fuseau est America/Montreal` | Change le fuseau d'envoi |
+| `désabonne-moi` / `réabonne-moi` | Arrête ou reprend l'envoi, sans supprimer le compte ni les réglages |
+| `supprime mes données` | Persona prévient que c'est définitif et demande de confirmer dans le **message suivant** : compte, réglages, sessions, historique du chat et des envois sont alors effacés |
 
 ### Se déconnecter
 
 Envoyez `déconnecte-moi` (ou `déconnexion`, `logout`).
 
-<!-- TODO (M3) : renseigner ses centres d'intérêt et son créneau, se désabonner, supprimer ses données -->
-
 ---
 
 ## 9. Tester rapidement un envoi programmé
 
-<!-- TODO (M5) : procédure pas à pas, ex.
-1. Dans le chat, régler son créneau à quelques minutes de l'heure actuelle
-2. Vérifier le fuseau horaire (GENERIC_TIMEZONE)
-3. Attendre, puis vérifier Mailpit et l'historique d'exécution (onglet Executions)
--->
+`PERSONA - NEWSLETTER - Send` tourne toutes les 15 minutes et envoie la newsletter aux utilisateurs actifs dont l'heure d'envoi, dans leur fuseau, tombe dans les 15 dernières minutes. Un utilisateur ne reçoit jamais deux newsletters le même jour, ni deux fois le même article.
+
+1. Vérifiez qu'il y a des articles en base (sinon, ouvrez `Persona - News sources` et cliquez sur **Execute workflow**) :
+   ```bash
+   docker compose exec postgres psql -U persona -d persona -c "SELECT count(*) FROM articles;"
+   ```
+2. Dans le chat, connecté(e) et avec au moins un centre d'intérêt, réglez l'heure d'envoi sur l'heure actuelle : `envoie-moi la newsletter à 14h05`
+3. Attendez le prochain passage de `Send` (au plus 15 minutes), ou ouvrez `PERSONA - NEWSLETTER - Send` et cliquez sur **Execute workflow** pour l'envoyer tout de suite
+4. Ouvrez http://localhost:8025 : la newsletter est arrivée, en HTML et en texte
+5. Relancez `Send` : rien n'est renvoyé le même jour
+
+Pour refaire un envoi le même jour pendant les tests :
+```bash
+docker compose exec postgres psql -U persona -d persona -c "UPDATE users SET last_sent_at = NULL WHERE email = 'votre@email.test';"
+```
+Seuls les articles pas encore envoyés à cet utilisateur seront inclus.
 
 ---
 
@@ -242,8 +253,10 @@ docker compose cp n8n:/tmp/export/. workflows/
 **Avant de commiter**, vérifiez chaque fichier exporté :
 
 - aucune clé d'API, token ou mot de passe dans les headers ou paramètres des nœuds HTTP Request
-- les nœuds utilisent uniquement les identifiants de la section 7 (`postgres`, `llm`, `smtp`, `news-api`), dont les noms ne révèlent rien de personnel
+- les nœuds utilisent uniquement les identifiants de la section 7 (`postgres`, `llm`, `smtp`, `News API Key`), dont les noms ne révèlent rien de personnel
 - aucune vraie donnée utilisateur dans les données épinglées (`pinData` doit être vide)
+- pas de `instanceId` dans `meta` (empreinte de votre instance n8n)
+- l'`id` du workflow est inchangé : les autres workflows l'appellent par cet identifiant
 
 Renommez les fichiers exportés selon les conventions de [`docs/conventions.md`](docs/conventions.md) (ex. `chat-router.json`, `auth-flow.json`) et remplacez l'ancien fichier, sans créer de doublon.
 
@@ -272,8 +285,9 @@ docker compose down -v
 | *Credentials could not be decrypted* | `N8N_ENCRYPTION_KEY` a changé depuis le premier lancement. Remettre l'ancienne clé, ou réinitialiser avec `docker compose down -v` |
 | Les tables de Persona n'existent pas | `db/init.sql` n'est exécuté que sur une base vide. Si le volume existait avant, le rejouer à la main : `docker compose exec -T postgres psql -U persona -d persona < db/init.sql` (voir [`docs/database.md`](docs/database.md)) |
 | Aucun email reçu | Vérifier que Mailpit tourne (`docker compose ps`) et que l'identifiant `smtp` pointe vers l'hôte `mailpit`, port `1025` |
-| « Workflow does not exist » sur `AUTH - Run Flow` ou un tool | Resélectionner le workflow appelé dans le nœud, voir section 5 |
-| « Workflow is not active and cannot be executed » | Le sous-workflow du tool n'est pas publié : l'ouvrir et cliquer sur **Publish** |
+| « Workflow does not exist » sur `AUTH - Run Flow`, un tool ou un nœud de `Send` | Les workflows ont été importés depuis l'interface : les réimporter en ligne de commande (section 5), ou resélectionner le workflow appelé dans le nœud |
+| « Workflow is not active and cannot be executed » | Le sous-workflow appelé (tool, Select, Summarize ou Render) n'est pas publié : l'ouvrir et cliquer sur **Publish** |
 | L'agent ne répond pas ou charge sans fin | Limite de requêtes Gemini atteinte. Vérifier sur Google AI Studio (**Usage**) et utiliser Gemini 3.5 Flash Lite (voir section 7) |
+| Aucune newsletter reçue | Vérifier que `NEWSLETTER - Send` est publié, que l'utilisateur a une heure d'envoi, au moins un centre d'intérêt et le statut `active`, et qu'il reste des articles qu'il n'a pas encore reçus (section 9) |
 | Envoi programmé à la mauvaise heure | Vérifier `GENERIC_TIMEZONE` et `TZ` dans `docker-compose.yml`, puis relancer `docker compose up -d` |
 | n8n ne démarre pas | `docker compose logs n8n` (et `docker compose logs postgres`) |

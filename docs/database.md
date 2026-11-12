@@ -16,9 +16,9 @@ Persona utilise PostgreSQL (service `postgres` du `docker-compose.yml`). Le sch�
 >   docker compose down -v && docker compose up -d
 >   ```
 
-Vérifier que les 6 tables existent :
+Vérifier que les 7 tables existent :
 ```bash
-docker compose exec postgres psql -U persona -d persona -c '\dt (users|sessions|otp|auth_flow|articles|sent_articles)'
+docker compose exec postgres psql -U persona -d persona -c '\dt (users|sessions|otp|auth_flow|articles|sent_articles|delete_requests)'
 ```
 
 ## Vue d'ensemble
@@ -27,6 +27,7 @@ docker compose exec postgres psql -U persona -d persona -c '\dt (users|sessions|
 users ──< sessions          (un user, plusieurs sessions de chat)
 users ──< sent_articles >── articles
 otp, auth_flow              (authentification en cours, avant connexion)
+delete_requests             (suppression de compte en attente de confirmation)
 ```
 
 Supprimer un utilisateur supprime en cascade ses sessions et son historique d'envoi (droit à l'effacement RGPD).
@@ -48,6 +49,7 @@ Abonnés à la newsletter.
 | `role` | `TEXT` | `NOT NULL`, défaut `user`, `user` ou `admin` | droits |
 | `status` | `TEXT` | `NOT NULL`, défaut `active`, `active` ou `unsubscribed` | abonné actif ou désinscrit |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL`, défaut `NOW()` | |
+| `last_sent_at` | `TIMESTAMPTZ` | | date du dernier envoi de la newsletter : jamais deux envois le même jour (#23) |
 
 ### `sessions`
 Relie le `sessionId` du Chat Trigger n8n à un utilisateur connecté.
@@ -94,6 +96,7 @@ Articles récupérés depuis les sources de news.
 | `tags` | `TEXT[]` | `NOT NULL`, défaut `{}` | sujets, comparés aux centres d'intérêt des users |
 | `published_at` | `TIMESTAMPTZ` | | date de publication |
 | `fetched_at` | `TIMESTAMPTZ` | `NOT NULL`, défaut `now()` | date de récupération |
+| `summarized_at` | `TIMESTAMPTZ` | | date du résumé par le LLM : un article n'est résumé qu'une fois (#21) |
 
 Index GIN sur `tags` pour filtrer rapidement :
 ```sql
@@ -138,6 +141,17 @@ INSERT INTO sent_articles (user_id, article_id)
 VALUES ($1, $2)
 ON CONFLICT DO NOTHING;
 ```
+
+### `delete_requests`
+Demandes de suppression de compte en attente de confirmation (#24). La suppression n'a lieu que si la confirmation arrive dans un **message suivant** (exécution différente du Router), moins de 10 minutes après la demande.
+
+| Colonne | Type | Contraintes |
+|---|---|---|
+| `session_id` | `TEXT` | clé primaire (= `sessionId` du chat) |
+| `exec_id` | `TEXT` | `NOT NULL` : id de l'exécution du Router qui a fait la demande |
+| `requested_at` | `TIMESTAMPTZ` | `NOT NULL`, défaut `NOW()` |
+
+La ligne est effacée avec le compte par `delete_my_data`.
 
 ## Credential n8n `postgres`
 

@@ -120,7 +120,7 @@ Pas de noms par défaut (`HTTP Request1`, `Code`, `If2`) : chaque nœud doit êt
 | `postgres` | Postgres | base de données du projet (hôte `postgres`, valeurs du `.env`) |
 | `llm` | Google Gemini (PaLM) API | nœud AI Agent / modèle de chat, domaine autorisé limité à `generativelanguage.googleapis.com` |
 | `smtp` | SMTP (ou Gmail OAuth2) | envoi des newsletters et des codes OTP |
-| `news-api` | Header Auth / API du fournisseur | récupération des articles |
+| `News API Key` | Query Auth (paramètre `apikey` de GNews) | récupération des articles |
 
 Tout nouveau credential est ajouté à ce tableau dans la même PR que le workflow qui l'utilise.
 
