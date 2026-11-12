@@ -1,0 +1,157 @@
+{
+  "name": "PERSONA - TOOL - block_source",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "user_id",
+              "type": "number"
+            },
+            {
+              "name": "action"
+            },
+            {
+              "name": "source"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "bs-start",
+      "name": "TOOL - Start"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Retrouver la source demandée parmi les sources connues (articles) ou déjà bloquées par l'utilisateur\nSELECT\n  (SELECT s FROM (\n     SELECT DISTINCT source AS s FROM articles WHERE source IS NOT NULL\n     UNION\n     SELECT source FROM blocked_sources WHERE user_id = $1::int\n   ) known\n   WHERE length(trim($2::text)) >= 3\n     AND (lower(s) = lower(trim($2::text)) OR position(lower(trim($2::text)) IN lower(s)) > 0)\n   ORDER BY (lower(s) = lower(trim($2::text))) DESC, length(s)\n   LIMIT 1) AS matched,\n  COALESCE((SELECT array_agg(DISTINCT source ORDER BY source) FROM articles WHERE source IS NOT NULL), '{}') AS known_sources,\n  COALESCE((SELECT array_agg(source ORDER BY source) FROM blocked_sources WHERE user_id = $1::int), '{}') AS blocked;",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id ?? null, String($json.source ?? '') ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        240,
+        0
+      ],
+      "id": "bs-find",
+      "name": "DB - Find Source",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "koDcmjZ6QyS7MmwZ",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// [Tool] block_source : valider l'action et la source\n// action = block (bloquer), unblock (débloquer) ou list (voir les sources bloquées)\nconst input = $('TOOL - Start').first().json;\nconst found = $input.first().json;\nconst userId = input.user_id;\nconst asked = String(input.source || '').trim();\nconst a = String(input.action || '').toLowerCase()\n  .normalize('NFD').replace(/[̀-ͯ]/g, '').trim();\n\nconst ACTIONS = {\n  block: 'block', bloquer: 'block', masquer: 'block',\n  unblock: 'unblock', debloquer: 'unblock', reactiver: 'unblock',\n  list: 'list', lister: 'list', liste: 'list',\n};\nconst action = ACTIONS[a] || null;\nconst known = found.known_sources || [];\nconst blocked = found.blocked || [];\nconst base = { user_id: userId, action, source: found.matched || null, blocked };\n\nif (!userId) {\n  return [{ json: { ...base, ok: false, message: \"Utilisateur non identifié : impossible de modifier les sources.\" } }];\n}\nif (!action) {\n  return [{ json: { ...base, ok: false, message: `Action inconnue \"${input.action || ''}\". Valeurs possibles : block, unblock ou list.` } }];\n}\nif (action === 'list') {\n  return [{ json: { ...base, ok: true, message: '' } }];\n}\nif (!found.matched) {\n  return [{ json: { ...base, ok: false, message: `Source \"${asked}\" introuvable. Sources connues : ${known.join(', ') || 'aucune pour le moment'}.` } }];\n}\nif (action === 'block' && !blocked.includes(found.matched) && blocked.length >= 20) {\n  return [{ json: { ...base, ok: false, message: \"Tu as déjà 20 sources bloquées, c'est le maximum. Débloques-en une avant d'en ajouter.\" } }];\n}\nreturn [{ json: { ...base, ok: true, message: '' } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ],
+      "id": "bs-validate",
+      "name": "TOOL - Validate"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Bloquer ou débloquer, uniquement si la validation est OK ($4) ; 20 sources bloquées max\nWITH ins AS (\n  INSERT INTO blocked_sources (user_id, source)\n  SELECT $1::int, $3::text\n  WHERE $2::text = 'block' AND $4::boolean\n    AND (SELECT count(*) FROM blocked_sources WHERE user_id = $1::int) < 20\n  ON CONFLICT DO NOTHING\n  RETURNING source\n), del AS (\n  DELETE FROM blocked_sources\n  WHERE user_id = $1::int AND source = $3::text AND $2::text = 'unblock' AND $4::boolean\n  RETURNING source\n)\nSELECT (SELECT count(*) FROM ins)::int AS inserted, (SELECT count(*) FROM del)::int AS deleted;",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id ?? null, $json.action ?? 'none', $json.source, $json.ok ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        720,
+        0
+      ],
+      "id": "bs-apply",
+      "name": "DB - Apply Block",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "koDcmjZ6QyS7MmwZ",
+          "name": "postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// [Tool] block_source : réponse { ok, message, data }\nconst v = $('TOOL - Validate').first().json;\nif (!v.ok) return [{ json: { ok: false, message: v.message } }];\n\nconst r = $input.first().json;\nlet blocked = [...v.blocked];\nlet message;\n\nif (v.action === 'list') {\n  message = blocked.length ? `Sources bloquées : ${blocked.join(', ')}.` : \"Tu n'as bloqué aucune source.\";\n} else if (v.action === 'block') {\n  if (r.inserted === 1) {\n    blocked.push(v.source);\n    message = `La source ${v.source} est bloquée : tu ne recevras plus ses articles.`;\n  } else if (blocked.includes(v.source)) {\n    message = `La source ${v.source} était déjà bloquée.`;\n  } else {\n    return [{ json: { ok: false, message: \"Le blocage a échoué : rien n'a été modifié.\" } }];\n  }\n} else {\n  if (r.deleted === 1) {\n    blocked = blocked.filter(s => s !== v.source);\n    message = `La source ${v.source} est débloquée : ses articles pourront de nouveau t'être envoyés.`;\n  } else {\n    message = `La source ${v.source} n'était pas bloquée.`;\n  }\n}\nblocked.sort();\nreturn [{ json: { ok: true, message, data: { blocked_sources: blocked } } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "bs-format",
+      "name": "TOOL - Format Result"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "TOOL - Start": {
+      "main": [
+        [
+          {
+            "node": "DB - Find Source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Find Source": {
+      "main": [
+        [
+          {
+            "node": "TOOL - Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TOOL - Validate": {
+      "main": [
+        [
+          {
+            "node": "DB - Apply Block",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Apply Block": {
+      "main": [
+        [
+          {
+            "node": "TOOL - Format Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

@@ -181,3 +181,15 @@ ORDER BY table_name;
 docker compose exec -T postgres psql -U persona -d persona -v ON_ERROR_STOP=1 < tests/db/test_articles.sql
 ```
 Les tests tournent dans une transaction annulée à la fin : la base n'est pas modifiée.
+
+## `blocked_sources`
+
+Sources (médias) qu'un utilisateur ne veut plus recevoir. Remplie par le tool `block_source`, lue par la sélection des articles.
+
+| Colonne | Type | Contraintes | Description |
+|---|---|---|---|
+| `user_id` | `INTEGER` | `NOT NULL`, référence `users(id)`, `ON DELETE CASCADE` | utilisateur qui a bloqué la source |
+| `source` | `TEXT` | `NOT NULL` | nom de la source, identique à `articles.source` |
+| `blocked_at` | `TIMESTAMPTZ` | `NOT NULL`, défaut `now()` | date du blocage |
+
+Clé primaire : (`user_id`, `source`). La suppression d'un compte efface automatiquement ses sources bloquées.

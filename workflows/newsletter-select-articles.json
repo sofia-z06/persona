@@ -35,7 +35,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Sélection des articles par utilisateur (issue #20)\n-- user_id optionnel : NULL = tous les abonnés actifs\nSELECT u.id AS user_id,\n       u.email,\n       u.pseudo,\n       u.interests,\n       u.send_time,\n       u.timezone,\n       COALESCE(\n         json_agg(\n           json_build_object(\n             'id', a.id, 'title', a.title, 'url', a.url, 'summary', a.summary,\n             'source', a.source, 'tags', a.tags, 'published_at', a.published_at,\n             'score', a.score)\n           ORDER BY a.score DESC, a.published_at DESC NULLS LAST\n         ) FILTER (WHERE a.id IS NOT NULL),\n         '[]'::json\n       ) AS articles,\n       count(a.id) AS nb_articles\nFROM users u\nLEFT JOIN LATERAL (\n  SELECT ar.*,\n         cardinality(ARRAY(SELECT unnest(ar.tags) INTERSECT SELECT unnest(u.interests))) AS score\n  FROM articles ar\n  WHERE ar.tags && u.interests                       -- seulement ses intérêts\n    AND NOT EXISTS (                                 -- jamais deux fois le même article\n      SELECT 1 FROM sent_articles s\n      WHERE s.user_id = u.id AND s.article_id = ar.id)\n  ORDER BY score DESC, ar.published_at DESC NULLS LAST\n  LIMIT 5                                            -- 5 plus pertinents puis plus récents\n) a ON true\nWHERE u.status = 'active'                            -- ignorer les désabonnés\n  AND cardinality(u.interests) > 0\n  AND ($1::int IS NULL OR u.id = $1::int)\nGROUP BY u.id\nORDER BY u.id;",
+        "query": "-- Sélection des articles par utilisateur (issue #20)\n-- user_id optionnel : NULL = tous les abonnés actifs\nSELECT u.id AS user_id,\n       u.email,\n       u.pseudo,\n       u.interests,\n       u.send_time,\n       u.timezone,\n       COALESCE(\n         json_agg(\n           json_build_object(\n             'id', a.id, 'title', a.title, 'url', a.url, 'summary', a.summary,\n             'source', a.source, 'tags', a.tags, 'published_at', a.published_at,\n             'score', a.score)\n           ORDER BY a.score DESC, a.published_at DESC NULLS LAST\n         ) FILTER (WHERE a.id IS NOT NULL),\n         '[]'::json\n       ) AS articles,\n       count(a.id) AS nb_articles\nFROM users u\nLEFT JOIN LATERAL (\n  SELECT ar.*,\n         cardinality(ARRAY(SELECT unnest(ar.tags) INTERSECT SELECT unnest(u.interests))) AS score\n  FROM articles ar\n  WHERE ar.tags && u.interests                       -- seulement ses intérêts\n    AND NOT EXISTS (                                 -- jamais deux fois le même article\n      SELECT 1 FROM sent_articles s\n      WHERE s.user_id = u.id AND s.article_id = ar.id)\n    AND NOT EXISTS (                                 -- pas les sources bloquées par cet utilisateur\n      SELECT 1 FROM blocked_sources b\n      WHERE b.user_id = u.id AND b.source = ar.source)\n  ORDER BY score DESC, ar.published_at DESC NULLS LAST\n  LIMIT 5                                            -- 5 plus pertinents puis plus récents\n) a ON true\nWHERE u.status = 'active'                            -- ignorer les désabonnés\n  AND cardinality(u.interests) > 0\n  AND ($1::int IS NULL OR u.id = $1::int)\nGROUP BY u.id\nORDER BY u.id;",
         "options": {
           "queryReplacement": "={{ [ $json.user_id ?? null ] }}"
         }
@@ -83,10 +83,6 @@
   },
   "active": false,
   "settings": {
-    "executionOrder": "v1",
-    "saveDataSuccessExecution": "none",
-    "saveManualExecutions": false,
-    "saveDataErrorExecution": "all"
-  },
-  "id": "u7tgxyDocnCdX49s"
+    "executionOrder": "v1"
+  }
 }
